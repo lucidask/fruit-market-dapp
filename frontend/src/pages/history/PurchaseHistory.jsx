@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
+import { useNavigate } from "react-router-dom";
 
 import ToastMessage from "../../components/common/ToastMessage";
 import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
@@ -8,6 +9,7 @@ import abi from "../../config/abi.json";
 export default function PurchaseHistory({ account, status, setStatus }) {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const formatAddress = (address) => {
     if (!address) return "-";
@@ -31,9 +33,6 @@ export default function PurchaseHistory({ account, status, setStatus }) {
     }
 
     try {
-      setLoading(true);
-      setStatus("Loading...");
-
       const provider = new ethers.BrowserProvider(window.ethereum);
 
       const network = await provider.getNetwork();
@@ -41,6 +40,9 @@ export default function PurchaseHistory({ account, status, setStatus }) {
         setStatus("Wrong network. Please switch to Sepolia.");
         return;
       }
+
+      setLoading(true); // 🔥 déplacé ici
+      setStatus("Loading...");
 
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
@@ -51,16 +53,19 @@ export default function PurchaseHistory({ account, status, setStatus }) {
       for (let i = 0; i < count; i++) {
         const item = await contract.getPurchaseHistoryItem(i);
 
-        data.push({
-          fruitId: Number(item[0]),
-          fruitName: item[1],
-          buyer: item[2],
-          seller: item[3],
-          quantity: Number(item[4]),
-          unitPrice: ethers.formatEther(item[5]),
-          totalPrice: ethers.formatEther(item[6]),
-          timestamp: Number(item[7]),
-        });
+       data.push({
+        fruitId: Number(item[0]),
+        fruitName: item[1],
+        buyer: item[2],
+        seller: item[3],
+        quantity: Number(item[4]),
+        unitPriceWei: item[5],
+        totalPriceWei: item[6],
+        unitPrice: ethers.formatEther(item[5]),
+        totalPrice: ethers.formatEther(item[6]),
+        timestamp: Number(item[7]),
+        historyIndex: i,
+      });
       }
 
       data.reverse();
@@ -75,21 +80,23 @@ export default function PurchaseHistory({ account, status, setStatus }) {
   };
 
   useEffect(() => {
-    refreshPurchaseHistory();
+    if (account) {
+      refreshPurchaseHistory();
+    }
   }, [account]);
 
   const summary = useMemo(() => {
     const totalOrders = history.length;
     const totalQuantity = history.reduce((sum, item) => sum + item.quantity, 0);
-    const totalSpent = history.reduce(
-      (sum, item) => sum + Number(item.totalPrice),
-      0
+    const totalSpentWei = history.reduce(
+      (sum, item) => sum + BigInt(item.totalPriceWei),
+      0n
     );
 
     return {
       totalOrders,
       totalQuantity,
-      totalSpent: totalSpent.toFixed(4),
+      totalSpent: ethers.formatEther(totalSpentWei),
     };
   }, [history]);
 
@@ -183,13 +190,15 @@ export default function PurchaseHistory({ account, status, setStatus }) {
         >
           {history.map((item, index) => (
             <div key={index}>
-              <div
+             <div
                 className="fruit-card history-row"
+                onClick={() => navigate(`/purchase-details/${item.historyIndex}`)}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1.3fr",
                   gap: "14px",
                   alignItems: "center",
+                  cursor: "pointer", // 🔥 UX
                 }}
               >
                 <div>

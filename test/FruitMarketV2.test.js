@@ -8,7 +8,10 @@ describe("FruitMarketV2", function () {
     [owner, buyer] = await ethers.getSigners();
 
     const V1 = await ethers.getContractFactory("FruitMarketV1");
-    proxy = await upgrades.deployProxy(V1, [], { initializer: "initialize" });
+   proxy = await upgrades.deployProxy(V1, [], {
+    initializer: "initialize",
+    kind: "uups",
+  });
     await proxy.deployed();
 
     await proxy.addFruit("Apple", ethers.utils.parseEther("1"), 10);
@@ -77,7 +80,7 @@ describe("FruitMarketV2", function () {
   });
 
   it("should confirm buyer has bought from seller", async function () {
-    const hasBought = await proxy.hasBoughtFromSeller(
+    const hasBought = await proxy.hasBuyerPurchasedFromSeller(
       buyer.address,
       owner.address
     );

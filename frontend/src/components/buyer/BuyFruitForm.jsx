@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom"; // 🔥 ajouté
 import { ethers } from "ethers";
 import abi from "../../config/abi.json";
 import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { getReadableErrorMessage } from "../../utils/handleContractError";
 
 export default function BuyFruitForm({
   fruitId,
@@ -12,6 +14,7 @@ export default function BuyFruitForm({
 }) {
   const [quantity, setQuantity] = useState("");
   const [isBuying, setIsBuying] = useState(false);
+  const navigate = useNavigate(); // 🔥 ajouté
 
   const handleBuy = async () => {
     if (isBuying) return;
@@ -34,8 +37,6 @@ export default function BuyFruitForm({
     }
 
     try {
-      setIsBuying(true);
-
       const provider = new ethers.BrowserProvider(window.ethereum);
 
       const network = await provider.getNetwork();
@@ -44,6 +45,8 @@ export default function BuyFruitForm({
         return;
       }
 
+      setIsBuying(true);
+
       const signer = await provider.getSigner();
       const buyerAddress = await signer.getAddress();
 
@@ -51,6 +54,7 @@ export default function BuyFruitForm({
 
       const fruit = await contract.getFruit(fruitId);
 
+      const fruitName = fruit[1]; // 🔥 ajouté
       const fruitPriceWei = fruit[2];
       const fruitStock = Number(fruit[3]);
       const fruitSeller = fruit[4];
@@ -71,12 +75,14 @@ export default function BuyFruitForm({
         return;
       }
 
-      const totalPrice = fruitPriceWei * BigInt(quantityNumber);
+      const totalPriceWei = fruitPriceWei * BigInt(quantityNumber);
+      const unitPriceEth = ethers.formatEther(fruitPriceWei); // 🔥 ajouté
+      const totalPriceEth = ethers.formatEther(totalPriceWei); // 🔥 ajouté
 
       setStatus("Opening MetaMask...");
 
       const tx = await contract.buyFruit(fruitId, quantityNumber, {
-        value: totalPrice,
+        value: totalPriceWei,
       });
 
       setStatus("Transaction sent. Waiting for confirmation...");
@@ -88,35 +94,25 @@ export default function BuyFruitForm({
       if (refreshFruits) {
         await refreshFruits();
       }
+
+      // 🔥 REDIRECTION ICI
+      navigate("/purchase-success", {
+        state: {
+          fruitId: Number(fruitId),
+          fruitName,
+          quantity: quantityNumber,
+          unitPrice: unitPriceEth,
+          totalPrice: totalPriceEth,
+          seller: fruitSeller,
+          buyer: buyerAddress,
+          txHash: tx.hash,
+          purchasedAt: Date.now(),
+        },
+      });
+
     } catch (error) {
       console.error("Full purchase error:", error);
-
-      const reason =
-        error?.reason ||
-        error?.shortMessage ||
-        error?.info?.error?.message ||
-        error?.message ||
-        "";
-
-      const normalizedReason = reason.toLowerCase();
-
-      if (error?.code === 4001 || normalizedReason.includes("user rejected")) {
-        setStatus("Transaction rejected.");
-      } else if (normalizedReason.includes("insufficient funds")) {
-        setStatus("Insufficient funds to pay for the purchase or gas fees.");
-      } else if (normalizedReason.includes("incorrect payment")) {
-        setStatus("Incorrect payment amount.");
-      } else if (normalizedReason.includes("fruit inactive")) {
-        setStatus("Product unavailable.");
-      } else if (normalizedReason.includes("not enough stock")) {
-        setStatus("Insufficient stock.");
-      } else if (normalizedReason.includes("invalid fruit id")) {
-        setStatus("Invalid fruit.");
-      } else if (normalizedReason.includes("execution reverted")) {
-        setStatus(`Transaction rejected: ${reason}`);
-      } else {
-        setStatus("Error while purchasing.");
-      }
+      setStatus(getReadableErrorMessage(error, "Error while purchasing."));
     } finally {
       setIsBuying(false);
     }

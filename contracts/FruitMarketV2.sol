@@ -14,25 +14,12 @@ contract FruitMarketV2 is FruitMarketV1 {
         uint256 rating
     );
 
-    function hasBoughtFromSeller(address buyer, address seller)
-        public
-        view
-        returns (bool)
-    {
-        for (uint256 i = 1; i <= fruitCount; i++) {
-            if (fruits[i].seller == seller && purchases[i][buyer] > 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     function rateSeller(address seller, uint256 rating) external {
         require(seller != address(0), "Invalid seller");
         require(seller != msg.sender, "Cannot rate yourself");
         require(rating >= 1 && rating <= 5, "Rating must be 1 to 5");
         require(
-            hasBoughtFromSeller(msg.sender, seller),
+            hasBoughtFromSeller[msg.sender][seller],
             "Must buy before rating"
         );
         require(
@@ -40,9 +27,9 @@ contract FruitMarketV2 is FruitMarketV1 {
             "Seller already rated"
         );
 
+        hasRatedSeller[msg.sender][seller] = true;
         sellerRatingSum[seller] += rating;
         sellerRatingCount[seller] += 1;
-        hasRatedSeller[msg.sender][seller] = true;
 
         emit SellerRated(seller, msg.sender, rating);
     }
@@ -61,5 +48,21 @@ contract FruitMarketV2 is FruitMarketV1 {
         returns (bool)
     {
         return hasRatedSeller[buyer][seller];
+    }
+
+    function getSellerRatingCount(address seller)
+        external
+        view
+        returns (uint256)
+    {
+        return sellerRatingCount[seller];
+    }
+
+    function getSellerRatingSum(address seller)
+        external
+        view
+        returns (uint256)
+    {
+        return sellerRatingSum[seller];
     }
 }

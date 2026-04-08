@@ -11,8 +11,8 @@ export default function Sidebar({ isV2 }) {
   const [historyOpen, setHistoryOpen] = useState(isHistoryRoute);
 
   useEffect(() => {
-    if (isHistoryRoute) {
-      setHistoryOpen(true);
+    if (!isHistoryRoute) {
+      setHistoryOpen(false);
     }
   }, [isHistoryRoute]);
 

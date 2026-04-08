@@ -499,6 +499,44 @@
     "inputs": [
       {
         "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      }
+    ],
+    "name": "getSellerRatingCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "seller",
+        "type": "address"
+      }
+    ],
+    "name": "getSellerRatingSum",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
         "name": "buyer",
         "type": "address"
       },
@@ -508,7 +546,7 @@
         "type": "address"
       }
     ],
-    "name": "hasBoughtFromSeller",
+    "name": "hasBuyerPurchasedFromSeller",
     "outputs": [
       {
         "internalType": "bool",

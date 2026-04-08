@@ -51,6 +51,9 @@ contract FruitMarketV1 is
     mapping(address => PurchaseRecord[]) internal salesHistory;
     // historique complet des ventes par vendeur
 
+    mapping(address => mapping(address => bool)) internal hasBoughtFromSeller;
+    // buyer => seller => true si déjà acheté au moins une fois
+
     // ===== EVENTS =====
 
     // événement quand un fruit est ajouté
@@ -80,13 +83,18 @@ contract FruitMarketV1 is
     // événement quand un fruit est supprimé
     event FruitRemoved(uint256 indexed fruitId);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     // ===== INITIALIZATION =====
 
     // remplace le constructeur (obligatoire pour upgradeable)
     function initialize() public initializer {
-        __Ownable_init(); // définit le propriétaire
-        __UUPSUpgradeable_init();   // initialise UUPS
-        __ReentrancyGuard_init();   // protection contre reentrancy
+        __Ownable_init();         // définit le propriétaire
+        __UUPSUpgradeable_init(); // initialise UUPS
+        __ReentrancyGuard_init(); // protection contre reentrancy
     }
 
     // ===== FONCTIONS PRINCIPALES =====
@@ -132,7 +140,6 @@ contract FruitMarketV1 is
         require(fruit.stock >= quantity, "Not enough stock");
 
         uint256 totalPrice = fruit.price * quantity;
-
         require(msg.value == totalPrice, "Incorrect payment");
 
         // mise à jour du stock
@@ -141,7 +148,10 @@ contract FruitMarketV1 is
         // enregistrement existant (NE PAS SUPPRIMER)
         purchases[fruitId][msg.sender] += quantity;
 
-        // ===== NOUVEAU : création du record =====
+        // trace qu'un buyer a deja achete chez ce seller
+        hasBoughtFromSeller[msg.sender][fruit.seller] = true;
+
+        // création du record
         PurchaseRecord memory record = PurchaseRecord({
             fruitId: fruitId,
             fruitName: fruit.name,
@@ -160,7 +170,8 @@ contract FruitMarketV1 is
         salesHistory[fruit.seller].push(record);
 
         // transfert de l'argent
-        payable(fruit.seller).transfer(totalPrice);
+        (bool success, ) = payable(fruit.seller).call{value: totalPrice}("");
+        require(success, "Payment failed");
 
         emit FruitPurchased(fruitId, msg.sender, quantity, totalPrice);
     }
@@ -246,7 +257,16 @@ contract FruitMarketV1 is
         return purchases[fruitId][buyer];
     }
 
-        // retourne le nombre total d'achats de l'utilisateur connecté
+    // retourne si un buyer a deja achete chez un seller
+    function hasBuyerPurchasedFromSeller(address buyer, address seller)
+        external
+        view
+        returns (bool)
+    {
+        return hasBoughtFromSeller[buyer][seller];
+    }
+
+    // retourne le nombre total d'achats de l'utilisateur connecté
     function getPurchaseHistoryCount() external view returns (uint256) {
         return purchaseHistory[msg.sender].length;
     }

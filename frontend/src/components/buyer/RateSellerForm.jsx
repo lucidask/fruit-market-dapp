@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ethers } from "ethers";
 import abi from "../../config/abi.json";
 import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { getReadableErrorMessage } from "../../utils/handleContractError";
 
 export default function RateSellerForm({
   seller,
@@ -26,8 +27,6 @@ export default function RateSellerForm({
     }
 
     try {
-      setIsRating(true);
-
       const provider = new ethers.BrowserProvider(window.ethereum);
 
       const network = await provider.getNetwork();
@@ -35,6 +34,8 @@ export default function RateSellerForm({
         setStatus("Wrong network. Please switch to Sepolia.");
         return;
       }
+
+      setIsRating(true);
 
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
@@ -55,38 +56,7 @@ export default function RateSellerForm({
       }
     } catch (error) {
       console.error("Full rating error:", error);
-
-      const reason =
-        error?.reason ||
-        error?.shortMessage ||
-        error?.info?.error?.message ||
-        error?.message ||
-        "";
-
-      const normalizedReason = reason.toLowerCase();
-
-      if (error?.code === 4001 || normalizedReason.includes("user rejected")) {
-        setStatus("Transaction rejected.");
-      } else if (
-        normalizedReason.includes("must buy from seller first") ||
-        normalizedReason.includes("must have bought from seller")
-      ) {
-        setStatus("You must buy from this seller before rating.");
-      } else if (
-        normalizedReason.includes("already rated") ||
-        normalizedReason.includes("buyer already rated seller")
-      ) {
-        setStatus("You have already rated this seller.");
-      } else if (
-        normalizedReason.includes("rating must be between 1 and 5") ||
-        normalizedReason.includes("invalid rating")
-      ) {
-        setStatus("Rating must be between 1 and 5.");
-      } else if (normalizedReason.includes("execution reverted")) {
-        setStatus(`Transaction rejected: ${reason}`);
-      } else {
-        setStatus("Error while submitting rating.");
-      }
+      setStatus(getReadableErrorMessage(error, "Error while submitting rating."));
     } finally {
       setIsRating(false);
     }

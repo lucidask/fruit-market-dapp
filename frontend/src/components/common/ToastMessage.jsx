@@ -36,10 +36,13 @@ export default function ToastMessage({ status, onClear }) {
     color = "#047857";
     border = "#a7f3d0";
   } else if (
-    lower.includes("error ") ||
+    lower.includes("error") ||
     lower.includes("refused") ||
     lower.includes("invalid") ||
-    lower.includes("insufficient")
+    lower.includes("insufficient") ||
+    lower.includes("failed") ||
+    lower.includes("échec") ||
+    lower.includes("échoué")
   ) {
     bg = "#fef2f2";
     color = "#b91c1c";

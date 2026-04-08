@@ -18,6 +18,7 @@ export default function MyStore({
 }) {
   const [fruits, setFruits] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
@@ -35,9 +36,6 @@ export default function MyStore({
     }
 
     try {
-      setLoading(true);
-      setStatus("Loading...");
-
       const provider = new ethers.BrowserProvider(window.ethereum);
 
       const network = await provider.getNetwork();
@@ -45,6 +43,9 @@ export default function MyStore({
         setStatus("Wrong network. Please switch to Sepolia.");
         return;
       }
+
+      setLoading(true);
+      setStatus("Loading...");
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 
@@ -81,7 +82,9 @@ export default function MyStore({
   };
 
   useEffect(() => {
-    refreshFruits();
+    if (account) {
+      refreshFruits();
+    }
   }, [account]);
 
   const activeFruits = fruits.filter((fruit) => fruit.active).length;
@@ -89,12 +92,30 @@ export default function MyStore({
 
   return (
     <div>
-      <h1>My Store</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "18px",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1 style={{ margin: "0 0 6px 0" }}>My Store</h1>
+          <p style={{ margin: 0, color: "var(--text-secondary)" }}>
+            Manage your products, update stock, and track the fruits listed in your store.
+          </p>
+        </div>
 
-      <div style={{ marginBottom: "24px" }}>
-        <p style={{ color: "var(--text-secondary)", margin: 0 }}>
-          Manage your products, update stock, and track the fruits listed in your store.
-        </p>
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={() => setShowAddForm((prev) => !prev)}
+        >
+          {showAddForm ? "− Opening Form..." : "➕ Add Fruit"}
+        </button>
       </div>
 
       <div
@@ -127,13 +148,42 @@ export default function MyStore({
         </Card>
       </div>
 
-      <div style={{ marginBottom: "24px" }}>
-        <AddFruitForm
-          account={account}
-          setStatus={setStatus}
-          refreshFruits={refreshFruits}
-        />
-      </div>
+      {showAddForm && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowAddForm(false)}   // 👈 CLICK OUTSIDE
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()} // 👈 BLOQUE le click interne
+          >
+            <div className="modal-header">
+              <h2>Add a New Fruit</h2>
+
+              <button
+                className="modal-close"
+                onClick={() => setShowAddForm(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="section-subtitle">
+              Fill in the fields below to list a new fruit in your store.
+            </p>
+
+            <AddFruitForm
+              account={account}
+              setStatus={setStatus}
+              refreshFruits={async () => {
+                await refreshFruits();
+                setShowAddForm(false);
+              }}
+            />
+
+          </div>
+        </div>
+      )}
 
       <div>
         <div
@@ -158,13 +208,6 @@ export default function MyStore({
             className="button-secondary"
             onClick={refreshFruits}
             disabled={loading}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 10px",
-              fontSize: "13px",
-            }}
           >
             {loading ? "Loading..." : "↻ Refresh"}
           </button>

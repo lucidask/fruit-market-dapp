@@ -4,11 +4,17 @@ const { ethers } = require("hardhat");
 describe("FruitMarketV1", function () {
   let contract, owner, buyer, other;
 
+  const { expect } = require("chai");
+  const { ethers, upgrades } = require("hardhat");
+
   beforeEach(async function () {
     [owner, buyer, other] = await ethers.getSigners();
 
     const Factory = await ethers.getContractFactory("FruitMarketV1");
-    contract = await Factory.deploy();
+    contract = await upgrades.deployProxy(Factory, [], {
+      initializer: "initialize",
+      kind: "uups",
+    });
     await contract.deployed();
   });
 

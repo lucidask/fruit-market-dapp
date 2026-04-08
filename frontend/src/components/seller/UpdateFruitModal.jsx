@@ -33,14 +33,14 @@ export default function UpdateFruitModal({
 
   const handleUpdate = async () => {
     if (!window.ethereum) {
-      setStatus("MetaMask non installé.");
+      setStatus("MetaMask is not installed.");
       return;
     }
 
     if (!fruit) return;
 
     if (!price || !stock) {
-      setStatus("Veuillez remplir tous les champs.");
+      setStatus("Please fill in all fields.");
       return;
     }
 
@@ -62,10 +62,10 @@ export default function UpdateFruitModal({
         Number(stock)
       );
 
-      setStatus("Transaction envoyée. En attente de confirmation...");
+      setStatus("Transaction sent. Waiting for confirmation...");
       await tx.wait();
 
-      setStatus("Fruit mis à jour avec succès.");
+      setStatus("Fruit updated successfully.");
 
       if (refreshFruits) {
         await refreshFruits();
@@ -74,9 +74,9 @@ export default function UpdateFruitModal({
       console.error(error);
 
       if (error.code === 4001) {
-        setStatus("Transaction refusée.");
+        setStatus("Transaction rejected.");
       } else {
-        setStatus("Erreur lors de la mise à jour.");
+        setStatus("Error while updating fruit.");
       }
     } finally {
       setUpdatingFruitId(null);
@@ -120,11 +120,13 @@ export default function UpdateFruitModal({
           Cancel
         </button>
 
-        <button type="button" 
-        onClick={(e) => {
-          e.stopPropagation();
-          handleUpdate();
-        }}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleUpdate();
+          }}
+        >
           Save changes
         </button>
       </div>

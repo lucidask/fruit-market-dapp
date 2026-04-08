@@ -35,14 +35,6 @@ export default function Marketplace({
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 
-      let v2Available = false;
-      try {
-        await contract.getSellerRating(CONTRACT_ADDRESS);
-        v2Available = true;
-      } catch {
-        v2Available = false;
-      }
-
       const count = await contract.getFruitCount();
       const fruitsData = [];
 
@@ -51,8 +43,10 @@ export default function Marketplace({
 
         let sellerRating = "N/A";
         let myPurchase = 0;
+        let alreadyRated = false;
 
-        if (v2Available) {
+        // ✅ utiliser isV2 au lieu de redétecter
+        if (isV2) {
           try {
             const rating = await contract.getSellerRating(fruit[4]);
             sellerRating = Number(rating);
@@ -70,6 +64,14 @@ export default function Marketplace({
           }
         }
 
+        if (isV2 && account) {
+          try {
+            alreadyRated = await contract.hasRated(account, fruit[4]);
+          } catch {
+            alreadyRated = false;
+          }
+        }
+
         fruitsData.push({
           id: Number(fruit[0]),
           name: fruit[1],
@@ -79,6 +81,7 @@ export default function Marketplace({
           active: fruit[5],
           sellerRating,
           myPurchase,
+          alreadyRated,
         });
       }
 
@@ -100,15 +103,25 @@ export default function Marketplace({
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1>Fruit Market DApp</h1>
 
-      <div style={{ marginBottom: "24px" }}>
-        <p style={{ color: "var(--text-secondary)", margin: 0 }}>
-          Browse available fruits, check seller ratings, and buy directly from the marketplace.
-        </p>
-      </div>
+       <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "18px",
+          gap: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h1 style={{ margin: "0 0 6px 0" }}>Fruit Market DApp</h1>
+          <p style={{ margin: 0, color: "var(--text-secondary)" }}>
+            Browse available fruits, check seller ratings, and buy directly from the marketplace.
+          </p>
+        </div>
 
-      <div
+        <div
         style={{
           display: "flex",
           justifyContent: "flex-end",
@@ -130,6 +143,7 @@ export default function Marketplace({
         >
           {loading ? "Loading..." : "↻ Refresh"}
         </button>
+      </div>
       </div>
 
       <FruitList

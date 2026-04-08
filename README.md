@@ -30,13 +30,15 @@ Fruit Market est une DApp de marketplace de fruits sur Ethereum Sepolia. Le proj
 - tableau de bord acheteur avec achats agrégés
 - historique d’achats transaction par transaction
 - historique de ventes transaction par transaction
+- détails d’un achat (PurchaseDetails)
+- détails d’une vente (SalesDetails)
+- page de confirmation d’achat (PurchaseSuccess)
 - tableau de bord vendeur “My Store”
 - ajout, modification et suppression logique de fruits
 - achat avec quantité et paiement ETH
 - notation du vendeur après achat
-- cartes de fruits cliquables
 - page de détail d’un fruit
-- navigation vers le fruit surligné dans la boutique vendeur depuis la page détail
+- navigation intelligente entre les vues
 - toasts de statut et gestion des erreurs de transaction
 
 ## Stack technique
@@ -52,35 +54,35 @@ Fruit Market est une DApp de marketplace de fruits sur Ethereum Sepolia. Le proj
 
 ```text
 fruit-market-dapp/
-├── contracts/
-│   ├── FruitMarketV1.sol
-│   └── FruitMarketV2.sol
-├── scripts/
-│   ├── deploy.js
-│   └── upgrade.js
-├── test/
-│   ├── FruitMarketV1.test.js
-│   └── FruitMarketV2.test.js
-├── frontend/
-│   └── src/
-│       ├── components/
-│       │   ├── buyer/
-│       │   ├── common/
-│       │   └── seller/
-│       ├── pages/
-│       │   ├── Marketplace.jsx
-│       │   ├── FruitDetails.jsx
-│       │   ├── purchase/BuyerDashboard.jsx
-│       │   ├── history/PurchaseHistory.jsx
-│       │   ├── history/SalesHistory.jsx
-│       │   └── store/MyStore.jsx
-│       ├── routes/
-│       ├── config/
-│       └── utils/
+│
+├── contracts/ # Smart contracts (V1, V2)
+├── scripts/ # Déploiement et upgrade
+├── test/ # Tests Hardhat
+├── frontend/ # Application React
+│ ├── src/
+│ │ ├── pages/
+│ │ ├── components/
+│ │ ├── config/
+│ │ └── utils/
+│
 ├── hardhat.config.js
-├── .env
 └── README.md
 ```
+
+## 🧠 Architecture de l’application
+
+L’application est structurée en 3 couches principales :
+
+- **Smart Contract (Blockchain)**  
+  Gère la logique métier, les transactions, les historiques et les règles de sécurité.
+
+- **Backend Hardhat (scripts/tests)**  
+  Permet le déploiement, les upgrades et la validation du contrat.
+
+- **Frontend React**  
+  Interface utilisateur permettant d’interagir avec le smart contract via ethers.js et MetaMask.
+
+La communication se fait directement entre le frontend et le smart contract via le provider Ethereum.
 
 ## Prérequis
 - Node.js 18.x ou 20.x recommandé
@@ -200,6 +202,14 @@ http://localhost:5173
 - séparation logique/stockage via proxy upgradeable
 - gestion des erreurs côté front pour MetaMask, réseau et transactions refusées
 
+## 🔗 Déploiement
+
+- Réseau : Sepolia
+- Adresse du proxy : [À remplir]
+- Lien Etherscan : https://sepolia.etherscan.io/address/[ADRESSE]
+
+⚠️ Toujours utiliser l’adresse du proxy pour interagir avec le contrat.
+
 ## Remarques de fonctionnement
 - l’adresse utilisée côté front doit toujours être l’adresse du proxy, pas l’adresse de l’implémentation
 - après chaque déploiement ou upgrade, vérifier que `contract.js` et `abi.json` du front ont bien été mis à jour
@@ -212,3 +222,11 @@ npx hardhat test
 npx hardhat run scripts/deploy.js --network sepolia
 npx hardhat run scripts/upgrade.js --network sepolia
 ```
+
+## ⚠️ Limitations
+
+- pas de panier multi-produits
+- pas de pagination des historiques
+- pas de backend off-chain (tout on-chain)
+
+Ces choix sont volontaires pour rester aligné avec les exigences du TP.

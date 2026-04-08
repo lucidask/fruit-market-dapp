@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 
 export default function WalletConnect({ account, setAccount, setStatus }) {
+
   const connectWallet = async () => {
     if (!window.ethereum) {
       setStatus("MetaMask non installé.");
@@ -14,6 +15,16 @@ export default function WalletConnect({ account, setAccount, setStatus }) {
 
       setAccount(accounts[0]);
       setStatus("Wallet connecté avec succès.");
+
+      // 🔥 Vérifie le réseau
+      const chainId = await window.ethereum.request({
+        method: "eth_chainId",
+      });
+
+      if (chainId !== "0xaa36a7") { // Sepolia = 11155111
+        setStatus("Veuillez vous connecter au réseau Sepolia.");
+      }
+
     } catch (error) {
       if (error.code === 4001) {
         setStatus("Connexion refusée par l'utilisateur.");
@@ -49,17 +60,23 @@ export default function WalletConnect({ account, setAccount, setStatus }) {
     const handleAccountsChanged = (accounts) => {
       if (accounts.length > 0) {
         setAccount(accounts[0]);
-        if (setStatus) setStatus("Compte changé.");
+        setStatus("Compte changé.");
       } else {
         setAccount(null);
-        if (setStatus) setStatus("Aucun compte connecté.");
+        setStatus("Aucun compte connecté.");
       }
     };
 
+    const handleChainChanged = () => {
+      window.location.reload(); // 🔥 important pour éviter bugs réseau
+    };
+
     window.ethereum.on("accountsChanged", handleAccountsChanged);
+    window.ethereum.on("chainChanged", handleChainChanged);
 
     return () => {
       window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+      window.ethereum.removeListener("chainChanged", handleChainChanged);
     };
   }, [setAccount, setStatus]);
 
@@ -70,9 +87,13 @@ export default function WalletConnect({ account, setAccount, setStatus }) {
   return (
     <div>
       {account ? (
-        <span style={{ fontWeight: "bold" }}>Connected: {shortAccount}</span>
+        <span style={{ fontWeight: "bold" }}>
+          Connected: {shortAccount}
+        </span>
       ) : (
-        <button onClick={connectWallet}>Connecter MetaMask</button>
+        <button onClick={connectWallet}>
+          Connecter MetaMask
+        </button>
       )}
     </div>
   );

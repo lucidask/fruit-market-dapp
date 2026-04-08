@@ -107,7 +107,11 @@ export default function FruitList({
             }
           >
             <Card
-              onClick={() => navigate(`/fruit/${fruit.id}`)}
+              onClick={() => {
+                if (mode !== "buyer") {
+                  navigate(`/fruit/${fruit.id}`);
+                }
+              }}
               style={{
                 cursor: "pointer",
                 transition: "transform 0.15s ease, box-shadow 0.15s ease",
@@ -197,9 +201,9 @@ export default function FruitList({
                   <strong>Seller:</strong> {shortenAddress(fruit.seller)}
                 </p>
 
-                {fruit.quantity > 0 && (
+                {fruit.myPurchase > 0 && (
                   <p>
-                    <strong>Purchased :</strong> {fruit.quantity}
+                    <strong>Purchased :</strong> {fruit.myPurchase}
                   </p>
                 )}
 
@@ -310,7 +314,7 @@ export default function FruitList({
                 {mode === "buyer" &&
                   !isSeller &&
                   isV2 &&
-                  fruit.quantity > 0 &&
+                  fruit.myPurchase > 0 &&
                   !fruit.alreadyRated && (
                     <div
                       style={{

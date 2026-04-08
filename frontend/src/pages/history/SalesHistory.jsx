@@ -4,10 +4,12 @@ import { ethers } from "ethers";
 import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
 import abi from "../../config/abi.json";
 import ToastMessage from "../../components/common/ToastMessage";
+import { useNavigate } from "react-router-dom";
 
 export default function SalesHistory({ account, status, setStatus }) {
   const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const formatAddress = (address) => {
     if (!address) return "-";
@@ -31,9 +33,6 @@ export default function SalesHistory({ account, status, setStatus }) {
     }
 
     try {
-      setLoading(true);
-      setStatus("Loading...");
-
       const provider = new ethers.BrowserProvider(window.ethereum);
 
       const network = await provider.getNetwork();
@@ -41,6 +40,9 @@ export default function SalesHistory({ account, status, setStatus }) {
         setStatus("Wrong network. Please switch to Sepolia.");
         return;
       }
+      
+       setLoading(true);
+      setStatus("Loading...");
 
       const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
@@ -57,9 +59,12 @@ export default function SalesHistory({ account, status, setStatus }) {
           buyer: item[2],
           seller: item[3],
           quantity: Number(item[4]),
+          unitPriceWei: item[5],
+          totalPriceWei: item[6],
           unitPrice: ethers.formatEther(item[5]),
           totalPrice: ethers.formatEther(item[6]),
           timestamp: Number(item[7]),
+          historyIndex: i,
         });
       }
 
@@ -75,21 +80,23 @@ export default function SalesHistory({ account, status, setStatus }) {
   };
 
   useEffect(() => {
-    refreshSalesHistory();
+    if (account) {
+      refreshSalesHistory();
+    }
   }, [account]);
 
   const summary = useMemo(() => {
     const totalOrders = sales.length;
     const totalQuantity = sales.reduce((sum, item) => sum + item.quantity, 0);
-    const totalRevenue = sales.reduce(
-      (sum, item) => sum + Number(item.totalPrice),
-      0
+    const totalRevenueWei = sales.reduce(
+      (sum, item) => sum + BigInt(item.totalPriceWei),
+      0n
     );
 
     return {
       totalOrders,
       totalQuantity,
-      totalRevenue: totalRevenue.toFixed(4),
+      totalRevenue: ethers.formatEther(totalRevenueWei),
     };
   }, [sales]);
 
@@ -179,11 +186,13 @@ export default function SalesHistory({ account, status, setStatus }) {
             <div key={index}>
               <div
                 className="fruit-card history-row"
+                onClick={() => navigate(`/sales-details/${item.historyIndex}`)}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1.3fr",
                   gap: "14px",
                   alignItems: "center",
+                  cursor: "pointer", // 🔥 UX
                 }}
               >
                 <div>

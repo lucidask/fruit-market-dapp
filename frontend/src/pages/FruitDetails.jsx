@@ -14,7 +14,7 @@ import {
   shortenAddress,
 } from "../utils/format";
 
-export default function FruitDetails({ account, status, setStatus }) {
+export default function FruitDetails({ account, status, setStatus, isV2 }) {
   const { id } = useParams();
 
   const [fruit, setFruit] = useState(null);
@@ -22,31 +22,24 @@ export default function FruitDetails({ account, status, setStatus }) {
 
   const refreshFruitDetails = async () => {
     if (!window.ethereum) {
-      setStatus("MetaMask non installé.");
+      setStatus("MetaMask is not installed.");
       return;
     }
 
     try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+
       setLoading(true);
       setStatus("Loading...");
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 
       const data = await contract.getFruit(id);
 
       let sellerRating = 0;
       let myPurchase = 0;
-      let v2Available = false;
 
-      try {
-        await contract.getSellerRating(CONTRACT_ADDRESS);
-        v2Available = true;
-      } catch {
-        v2Available = false;
-      }
-
-      if (v2Available) {
+      if (isV2) {
         try {
           sellerRating = Number(await contract.getSellerRating(data[4]));
         } catch {
@@ -132,7 +125,7 @@ export default function FruitDetails({ account, status, setStatus }) {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button
             type="button"
             className="button-secondary"
@@ -141,7 +134,11 @@ export default function FruitDetails({ account, status, setStatus }) {
             ↻ Refresh
           </button>
 
-          <Link to="/" className="button-secondary" style={{ textDecoration: "none" }}>
+          <Link
+            to="/"
+            className="button-secondary"
+            style={{ textDecoration: "none" }}
+          >
             ← Back to Marketplace
           </Link>
         </div>
@@ -151,28 +148,37 @@ export default function FruitDetails({ account, status, setStatus }) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1.2fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
             gap: "24px",
             alignItems: "start",
           }}
         >
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "12px",
                 marginBottom: "10px",
+                flexWrap: "wrap",
               }}
             >
               <span style={{ fontSize: "32px" }}>{getFruitEmoji(fruit.name)}</span>
-              <div>
-                <h2 style={{ margin: 0 }}>{fruit.name}</h2>
+              <div style={{ minWidth: 0 }}>
+                <h2
+                  style={{
+                    margin: 0,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {fruit.name}
+                </h2>
                 <p
                   style={{
                     margin: "6px 0 0 0",
                     color: "var(--text-secondary)",
                     fontSize: "14px",
+                    wordBreak: "break-word",
                   }}
                 >
                   Fruit ID: #{fruit.id}
@@ -185,6 +191,7 @@ export default function FruitDetails({ account, status, setStatus }) {
                 fontSize: "28px",
                 fontWeight: "700",
                 margin: "0 0 18px 0",
+                wordBreak: "break-word",
               }}
             >
               {fruit.price} ETH
@@ -197,14 +204,15 @@ export default function FruitDetails({ account, status, setStatus }) {
                 gap: "12px",
                 color: "var(--text-secondary)",
                 fontSize: "15px",
+                minWidth: 0,
               }}
             >
-              <div>
+              <div style={{ wordBreak: "break-word" }}>
                 <strong style={{ color: "var(--text-primary)" }}>Seller:</strong>{" "}
                 <span title={fruit.seller}>{shortenAddress(fruit.seller)}</span>
               </div>
 
-              <div>
+              <div style={{ wordBreak: "break-word" }}>
                 <strong style={{ color: "var(--text-primary)" }}>Status:</strong>{" "}
                 {fruit.active ? (
                   <span className="badge badge-success">Active</span>
@@ -213,7 +221,7 @@ export default function FruitDetails({ account, status, setStatus }) {
                 )}
               </div>
 
-              <div>
+              <div style={{ wordBreak: "break-word" }}>
                 <strong style={{ color: "var(--text-primary)" }}>Availability:</strong>{" "}
                 {isOutOfStock ? (
                   <span className="badge badge-danger">❌ Out of Stock</span>
@@ -225,8 +233,10 @@ export default function FruitDetails({ account, status, setStatus }) {
               </div>
 
               {fruit.myPurchase > 0 && (
-                <div>
-                  <strong style={{ color: "var(--text-primary)" }}>Your total purchases:</strong>{" "}
+                <div style={{ wordBreak: "break-word" }}>
+                  <strong style={{ color: "var(--text-primary)" }}>
+                    Your total purchases:
+                  </strong>{" "}
                   {fruit.myPurchase}
                 </div>
               )}
@@ -242,12 +252,14 @@ export default function FruitDetails({ account, status, setStatus }) {
                     borderRadius: "999px",
                     backgroundColor: "#fffaf0",
                     width: "fit-content",
+                    maxWidth: "100%",
+                    flexWrap: "wrap",
                   }}
                 >
                   <span style={{ color: "#f59e0b", letterSpacing: "1px" }}>
                     {renderStars(fruit.sellerRating)}
                   </span>
-                  <span style={{ fontSize: "13px" }}>
+                  <span style={{ fontSize: "13px", wordBreak: "break-word" }}>
                     {fruit.sellerRating}/5 seller rating
                   </span>
                 </div>
@@ -255,37 +267,68 @@ export default function FruitDetails({ account, status, setStatus }) {
             </div>
           </div>
 
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div
               style={{
                 border: "1px solid var(--border)",
                 borderRadius: "16px",
                 padding: "18px",
                 background: "#fafafa",
+                height: "fit-content",
+                minWidth: 0,
               }}
             >
               <h3 style={{ marginTop: 0, marginBottom: "12px" }}>Actions</h3>
 
               {isSeller ? (
-                <div>
-                  <p style={{ marginTop: 0, color: "var(--text-secondary)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <p
+                    style={{
+                      marginTop: 0,
+                      color: "var(--text-secondary)",
+                      wordBreak: "break-word",
+                    }}
+                  >
                     This fruit belongs to your store.
                   </p>
                   <Link
                     to={`/seller?highlight=${fruit.id}`}
                     className="button-secondary"
-                    style={{ textDecoration: "none" }}
+                    style={{
+                      textDecoration: "none",
+                      display: "inline-flex",
+                    }}
                   >
                     Go to My Store
                   </Link>
                 </div>
               ) : isUnavailable ? (
-                <p style={{ margin: 0, color: "var(--danger)", fontWeight: "600" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    color: "var(--danger)",
+                    fontWeight: "600",
+                    wordBreak: "break-word",
+                  }}
+                >
                   This fruit is currently unavailable for purchase.
                 </p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <p style={{ margin: 0, color: "var(--text-secondary)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                    minWidth: 0,
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      color: "var(--text-secondary)",
+                      wordBreak: "break-word",
+                    }}
+                  >
                     Choose a quantity and complete your purchase.
                   </p>
 

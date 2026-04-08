@@ -4,8 +4,26 @@ const path = require("path");
 
 // Fonction principale
 async function main() {
-  // Adresse du proxy déjà déployé en V1
-  const proxyAddress = "0x20c56dD7f741254f1FFFB7BF0F9F2cFa650ad52F";
+  const network = await ethers.provider.getNetwork();
+  const networkName = network.name || "unknown";
+
+  const deploymentPath = path.join(
+    __dirname,
+    "..",
+    "deployments",
+    `${networkName}.json`
+  );
+
+  if (!fs.existsSync(deploymentPath)) {
+    throw new Error(`Fichier de déploiement introuvable : ${deploymentPath}`);
+  }
+
+  const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8"));
+  const proxyAddress = deployment.proxy;
+
+  if (!proxyAddress) {
+    throw new Error("Adresse proxy manquante dans le fichier de déploiement.");
+  }
 
   console.log("Upgrade du proxy :", proxyAddress);
 
@@ -21,12 +39,25 @@ async function main() {
   console.log("✅ Upgrade terminé !");
   console.log("Adresse du proxy (inchangée) :", upgraded.address);
 
+  // Sauvegarde l'adresse du proxy après upgrade
+  fs.writeFileSync(
+    deploymentPath,
+    JSON.stringify(
+      {
+        ...deployment,
+        proxy: upgraded.address
+      },
+      null,
+      2
+    )
+  );
+
   // Met à jour automatiquement l’ABI du front
   await updateFrontendAbi();
 
   console.log("\n🔗 Voir sur Etherscan :");
   console.log(`https://sepolia.etherscan.io/address/${upgraded.address}`);
-  console.log("✅ ABI du front mise à jour.");
+  console.log("✅ ABI V2 du front mise à jour.");
 }
 
 // Copie l'ABI V2 dans le front

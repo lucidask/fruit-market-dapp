@@ -29,9 +29,6 @@ export default function BuyerDashboard({
     }
 
     try {
-      setLoading(true);
-      setStatus("Loading...");
-
       const provider = new ethers.BrowserProvider(window.ethereum);
 
       const network = await provider.getNetwork();
@@ -39,6 +36,9 @@ export default function BuyerDashboard({
         setStatus("Wrong network. Please switch to Sepolia.");
         return;
       }
+
+      setLoading(true); // 🔥 déplacé ici
+      setStatus("Loading...");
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 
@@ -54,16 +54,18 @@ export default function BuyerDashboard({
             let sellerRating = 0;
             let alreadyRated = false;
 
-            try {
-              sellerRating = Number(await contract.getSellerRating(fruit[4]));
-            } catch {
-              sellerRating = 0;
-            }
+            if (isV2) {
+              try {
+                sellerRating = Number(await contract.getSellerRating(fruit[4]));
+              } catch {
+                sellerRating = 0;
+              }
 
-            try {
-              alreadyRated = await contract.hasRated(account, fruit[4]);
-            } catch {
-              alreadyRated = false;
+              try {
+                alreadyRated = await contract.hasRated(account, fruit[4]);
+              } catch {
+                alreadyRated = false;
+              }
             }
 
             purchased.push({
@@ -73,7 +75,7 @@ export default function BuyerDashboard({
               stock: Number(fruit[3]),
               seller: fruit[4],
               active: fruit[5],
-              quantity: Number(quantity),
+              myPurchase: Number(quantity), // 🔥 correction ici
               sellerRating,
               alreadyRated,
             });
@@ -94,46 +96,42 @@ export default function BuyerDashboard({
   };
 
   useEffect(() => {
-    refreshPurchases();
+    if (account) {
+      refreshPurchases(); // 🔥 évite appel inutile
+    }
   }, [account]);
 
   return (
     <div>
-      <h1>Buyer Dashboard</h1>
-
-      <ToastMessage status={status} onClear={() => setStatus(null)} />
-
-      <div
+       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: "12px",
+          marginBottom: "18px",
           gap: "12px",
           flexWrap: "wrap",
         }}
       >
-        <div style={{ marginBottom: "24px" }}>
-          <p style={{ color: "var(--text-secondary)", margin: 0 }}>
+        <div>
+          <h1 style={{ margin: "0 0 6px 0" }}>Buyer Dashboard</h1>
+           <ToastMessage status={status} onClear={() => setStatus(null)} />
+
+          <p style={{ margin: 0, color: "var(--text-secondary)" }}>
             View all fruits you have purchased and rate sellers after completed orders.
           </p>
         </div>
 
-        <button
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <button
           type="button"
           className="button-secondary"
           onClick={refreshPurchases}
           disabled={loading}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 10px",
-            fontSize: "13px",
-          }}
         >
           {loading ? "Loading..." : "↻ Refresh"}
         </button>
+        </div>
       </div>
 
       <FruitList
