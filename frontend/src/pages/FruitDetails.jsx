@@ -8,27 +8,27 @@ import Card from "../components/common/Card";
 
 import abi from "../config/abi.json";
 import { CONTRACT_ADDRESS } from "../config/contract";
-import {
-  getFruitEmoji,
-  renderStars,
-  shortenAddress,
-} from "../utils/format";
+import { getFruitEmoji, renderStars, shortenAddress } from "../utils/format";
+import { getBrowserProvider, checkSupportedNetwork } from "../utils/web3";
 
 export default function FruitDetails({ account, status, setStatus, isV2 }) {
   const { id } = useParams();
 
   const [fruit, setFruit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [buyingFruitId, setBuyingFruitId] = useState(null);
 
   const refreshFruitDetails = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
+
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setFruit(null);
       return;
     }
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
       setLoading(true);
       setStatus("Loading...");
 
@@ -66,19 +66,24 @@ export default function FruitDetails({ account, status, setStatus, isV2 }) {
         myPurchase,
       });
 
-      setStatus("Fruit details loaded.");
+      setStatus("");
     } catch (error) {
       console.error(error);
       setStatus("Error loading fruit details.");
+      setFruit(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshFruitDetails();
-  }, [id, account]);
+    if (!account) {
+      setFruit(null);
+      return;
+    }
 
+    refreshFruitDetails();
+  }, [account]);
   if (loading) {
     return (
       <div>
@@ -163,7 +168,9 @@ export default function FruitDetails({ account, status, setStatus, isV2 }) {
                 flexWrap: "wrap",
               }}
             >
-              <span style={{ fontSize: "32px" }}>{getFruitEmoji(fruit.name)}</span>
+              <span style={{ fontSize: "32px" }}>
+                {getFruitEmoji(fruit.name)}
+              </span>
               <div style={{ minWidth: 0 }}>
                 <h2
                   style={{
@@ -208,12 +215,16 @@ export default function FruitDetails({ account, status, setStatus, isV2 }) {
               }}
             >
               <div style={{ wordBreak: "break-word" }}>
-                <strong style={{ color: "var(--text-primary)" }}>Seller:</strong>{" "}
+                <strong style={{ color: "var(--text-primary)" }}>
+                  Seller:
+                </strong>{" "}
                 <span title={fruit.seller}>{shortenAddress(fruit.seller)}</span>
               </div>
 
               <div style={{ wordBreak: "break-word" }}>
-                <strong style={{ color: "var(--text-primary)" }}>Status:</strong>{" "}
+                <strong style={{ color: "var(--text-primary)" }}>
+                  Status:
+                </strong>{" "}
                 {fruit.active ? (
                   <span className="badge badge-success">Active</span>
                 ) : (
@@ -222,13 +233,19 @@ export default function FruitDetails({ account, status, setStatus, isV2 }) {
               </div>
 
               <div style={{ wordBreak: "break-word" }}>
-                <strong style={{ color: "var(--text-primary)" }}>Availability:</strong>{" "}
+                <strong style={{ color: "var(--text-primary)" }}>
+                  Availability:
+                </strong>{" "}
                 {isOutOfStock ? (
                   <span className="badge badge-danger">❌ Out of Stock</span>
                 ) : fruit.stock <= 5 ? (
-                  <span className="badge badge-warning">⚠ Low Stock ({fruit.stock})</span>
+                  <span className="badge badge-warning">
+                    ⚠ Low Stock ({fruit.stock})
+                  </span>
                 ) : (
-                  <span className="badge badge-success">✔ In Stock ({fruit.stock})</span>
+                  <span className="badge badge-success">
+                    ✔ In Stock ({fruit.stock})
+                  </span>
                 )}
               </div>
 
@@ -336,8 +353,11 @@ export default function FruitDetails({ account, status, setStatus, isV2 }) {
                     fruitId={fruit.id}
                     price={fruit.price}
                     stock={fruit.stock}
+                    account={account}
                     setStatus={setStatus}
                     refreshFruits={refreshFruitDetails}
+                    buyingFruitId={buyingFruitId}
+                    setBuyingFruitId={setBuyingFruitId}
                   />
                 </div>
               )}

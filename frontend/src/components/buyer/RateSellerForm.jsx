@@ -1,23 +1,29 @@
 import { useState } from "react";
 import { ethers } from "ethers";
 import abi from "../../config/abi.json";
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
 import { getReadableErrorMessage } from "../../utils/handleContractError";
+import { getProviderAndSigner, hasEnoughGas } from "../../utils/web3";
 
 export default function RateSellerForm({
   seller,
   setStatus,
+  account,
   refreshFruits,
+  ratingSellerId,
+  setRatingSellerId,
 }) {
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
-  const [isRating, setIsRating] = useState(false);
+  const isRating = ratingSellerId === seller;
+  const isAnotherRatingInProgress =
+    ratingSellerId !== null && ratingSellerId !== seller;
 
   const handleRate = async () => {
-    if (isRating) return;
+    if (ratingSellerId !== null) return;
 
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
+    if (!account) {
+      setStatus("Please connect your wallet.");
       return;
     }
 
@@ -27,20 +33,25 @@ export default function RateSellerForm({
     }
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const { signer } = await getProviderAndSigner(setStatus);
+      if (!signer) return;
 
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
+      setRatingSellerId(seller);
 
-      setIsRating(true);
-
-      const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
 
       setStatus("Opening MetaMask...");
+
+      const txRequest = await contract.rateSeller.populateTransaction(
+        seller,
+        rating,
+      );
+
+      const ok = await hasEnoughGas(txRequest, signer);
+      if (!ok) {
+        setStatus("Insufficient funds for gas.");
+        return;
+      }
 
       const tx = await contract.rateSeller(seller, rating);
 
@@ -56,9 +67,11 @@ export default function RateSellerForm({
       }
     } catch (error) {
       console.error("Full rating error:", error);
-      setStatus(getReadableErrorMessage(error, "Error while submitting rating."));
+      setStatus(
+        getReadableErrorMessage(error, "Error while submitting rating."),
+      );
     } finally {
-      setIsRating(false);
+      setRatingSellerId(seller);
     }
   };
 
@@ -78,8 +91,9 @@ export default function RateSellerForm({
           display: "flex",
           alignItems: "center",
           gap: "4px",
-          opacity: isRating ? 0.7 : 1,
-          pointerEvents: isRating ? "none" : "auto",
+          opacity: isRating || isAnotherRatingInProgress ? 0.7 : 1,
+          pointerEvents:
+            isRating || isAnotherRatingInProgress ? "none" : "auto",
         }}
       >
         {[1, 2, 3, 4, 5].map((value) => (
@@ -92,7 +106,7 @@ export default function RateSellerForm({
             }}
             onMouseEnter={() => setHovered(value)}
             onMouseLeave={() => setHovered(0)}
-            disabled={isRating}
+            disabled={isRating || isAnotherRatingInProgress}
             style={{
               background: "transparent",
               border: "none",
@@ -126,7 +140,7 @@ export default function RateSellerForm({
           e.stopPropagation();
           handleRate();
         }}
-        disabled={isRating}
+        disabled={isRating || isAnotherRatingInProgress}
       >
         {isRating ? "Rating..." : "Rate"}
       </button>

@@ -1,7 +1,12 @@
-export default function Card({ children, classname="", style={}, ...props }) {
+export default function Card({
+  children,
+  classname = "",
+  style = {},
+  ...props
+}) {
   return (
     <div
-    className={classname}
+      className={classname}
       style={{
         backgroundColor: "var(--bg-card)",
         border: "1px solid var(--border)",

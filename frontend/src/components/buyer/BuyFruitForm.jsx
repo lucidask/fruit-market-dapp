@@ -1,26 +1,31 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // 🔥 ajouté
+import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import abi from "../../config/abi.json";
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
 import { getReadableErrorMessage } from "../../utils/handleContractError";
+import { getProviderAndSigner } from "../../utils/web3";
 
 export default function BuyFruitForm({
   fruitId,
-  price,
   stock,
   setStatus,
+  account,
   refreshFruits,
+  buyingFruitId,
+  setBuyingFruitId,
 }) {
   const [quantity, setQuantity] = useState("");
-  const [isBuying, setIsBuying] = useState(false);
-  const navigate = useNavigate(); // 🔥 ajouté
+  const isBuying = buyingFruitId === fruitId;
+  const isAnotherBuyInProgress =
+    buyingFruitId !== null && buyingFruitId !== fruitId;
+  const navigate = useNavigate();
 
   const handleBuy = async () => {
-    if (isBuying) return;
+    if (buyingFruitId != null) return;
 
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
+    if (!account) {
+      setStatus("Please connect your wallet.");
       return;
     }
 
@@ -37,24 +42,18 @@ export default function BuyFruitForm({
     }
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const { provider, signer } = await getProviderAndSigner(setStatus);
+      if (!provider || !signer) return;
 
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
+      setBuyingFruitId(fruitId);
 
-      setIsBuying(true);
-
-      const signer = await provider.getSigner();
       const buyerAddress = await signer.getAddress();
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
 
       const fruit = await contract.getFruit(fruitId);
 
-      const fruitName = fruit[1]; // 🔥 ajouté
+      const fruitName = fruit[1];
       const fruitPriceWei = fruit[2];
       const fruitStock = Number(fruit[3]);
       const fruitSeller = fruit[4];
@@ -76,8 +75,8 @@ export default function BuyFruitForm({
       }
 
       const totalPriceWei = fruitPriceWei * BigInt(quantityNumber);
-      const unitPriceEth = ethers.formatEther(fruitPriceWei); // 🔥 ajouté
-      const totalPriceEth = ethers.formatEther(totalPriceWei); // 🔥 ajouté
+      const unitPriceEth = ethers.formatEther(fruitPriceWei);
+      const totalPriceEth = ethers.formatEther(totalPriceWei);
 
       setStatus("Opening MetaMask...");
 
@@ -95,7 +94,6 @@ export default function BuyFruitForm({
         await refreshFruits();
       }
 
-      // 🔥 REDIRECTION ICI
       navigate("/purchase-success", {
         state: {
           fruitId: Number(fruitId),
@@ -109,12 +107,11 @@ export default function BuyFruitForm({
           purchasedAt: Date.now(),
         },
       });
-
     } catch (error) {
       console.error("Full purchase error:", error);
       setStatus(getReadableErrorMessage(error, "Error while purchasing."));
     } finally {
-      setIsBuying(false);
+      setBuyingFruitId(null);
     }
   };
 
@@ -133,14 +130,14 @@ export default function BuyFruitForm({
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
         placeholder="Qty"
-        disabled={isBuying}
+        disabled={isBuying || isAnotherBuyInProgress}
         style={{
           width: "70px",
           padding: "6px",
           borderRadius: "6px",
           border: "1px solid var(--border)",
-          opacity: isBuying ? 0.7 : 1,
-          cursor: isBuying ? "not-allowed" : "text",
+          opacity: isBuying || isAnotherBuyInProgress ? 0.7 : 1,
+          cursor: isBuying || isAnotherBuyInProgress ? "not-allowed" : "text",
         }}
       />
 
@@ -150,7 +147,7 @@ export default function BuyFruitForm({
           e.stopPropagation();
           handleBuy();
         }}
-        disabled={isBuying}
+        disabled={isBuying || isAnotherBuyInProgress}
       >
         {isBuying ? "Buying..." : "Buy"}
       </button>

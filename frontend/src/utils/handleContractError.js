@@ -1,4 +1,7 @@
-export function getReadableErrorMessage(error, fallback = "An error occurred.") {
+export function getReadableErrorMessage(
+  error,
+  fallback = "An error occurred.",
+) {
   const reason =
     error?.reason ||
     error?.shortMessage ||

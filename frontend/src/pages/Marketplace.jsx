@@ -3,35 +3,32 @@ import { ethers } from "ethers";
 import ToastMessage from "../components/common/ToastMessage";
 import FruitList from "../components/common/FruitList";
 import abi from "../config/abi.json";
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../config/contract";
+import { CONTRACT_ADDRESS } from "../config/contract";
+import { getBrowserProvider, checkSupportedNetwork } from "../utils/web3";
 
-export default function Marketplace({
-  account,
-  setAccount,
-  status,
-  setStatus,
-  isV2,
-}) {
+export default function Marketplace({ account, status, setStatus, isV2 }) {
   const [fruits, setFruits] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const refreshFruits = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
+
+    if (!account) {
+      setFruits([]);
+      setStatus("Please connect your wallet.");
+      return;
+    }
+
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setFruits([]);
       return;
     }
 
     try {
       setLoading(true);
       setStatus("Loading...");
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 
@@ -45,7 +42,6 @@ export default function Marketplace({
         let myPurchase = 0;
         let alreadyRated = false;
 
-        // ✅ utiliser isV2 au lieu de redétecter
         if (isV2) {
           try {
             const rating = await contract.getSellerRating(fruit[4]);
@@ -86,7 +82,7 @@ export default function Marketplace({
       }
 
       setFruits(fruitsData);
-      setStatus("Marketplace loaded.");
+      setStatus("");
     } catch (error) {
       console.error("Full marketplace loading error:", error);
       setStatus("Error loading marketplace.");
@@ -96,15 +92,17 @@ export default function Marketplace({
   };
 
   useEffect(() => {
-    if (account) {
-      refreshFruits();
+    if (!account) {
+      setFruits([]);
+      return;
     }
+
+    refreshFruits();
   }, [account]);
 
   return (
     <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-
-       <div
+      <div
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -117,33 +115,34 @@ export default function Marketplace({
         <div>
           <h1 style={{ margin: "0 0 6px 0" }}>Fruit Market DApp</h1>
           <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-            Browse available fruits, check seller ratings, and buy directly from the marketplace.
+            Browse available fruits, check seller ratings, and buy directly from
+            the marketplace.
           </p>
         </div>
 
         <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "16px",
-        }}
-      >
-        <button
-          type="button"
-          className="button-secondary"
-          onClick={refreshFruits}
-          disabled={loading}
           style={{
             display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            padding: "6px 10px",
-            fontSize: "13px",
+            justifyContent: "flex-end",
+            marginBottom: "16px",
           }}
         >
-          {loading ? "Loading..." : "↻ Refresh"}
-        </button>
-      </div>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={refreshFruits}
+            disabled={loading}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 10px",
+              fontSize: "13px",
+            }}
+          >
+            {loading ? "Loading..." : "↻ Refresh"}
+          </button>
+        </div>
       </div>
 
       <FruitList

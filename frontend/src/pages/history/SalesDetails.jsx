@@ -5,8 +5,9 @@ import { ethers } from "ethers";
 import ToastMessage from "../../components/common/ToastMessage";
 import Card from "../../components/common/Card";
 import abi from "../../config/abi.json";
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
 import { shortenAddress } from "../../utils/format";
+import { getBrowserProvider, checkSupportedNetwork } from "../../utils/web3";
 
 export default function SalesDetails({ account, status, setStatus }) {
   const { index } = useParams();
@@ -72,25 +73,22 @@ export default function SalesDetails({ account, status, setStatus }) {
   };
 
   const refreshSaleDetails = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
 
     if (!account) {
+      setSale(null);
       setStatus("Please connect your wallet.");
       return;
     }
 
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setSale(null);
+      return;
+    }
+
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
-
       setLoading(true);
       setStatus("Loading...");
 
@@ -118,7 +116,7 @@ export default function SalesDetails({ account, status, setStatus }) {
         txHash,
       });
 
-      setStatus("Sale details loaded.");
+      setStatus("");
     } catch (error) {
       console.error(error);
       setStatus("Error loading sale details.");
@@ -129,10 +127,13 @@ export default function SalesDetails({ account, status, setStatus }) {
   };
 
   useEffect(() => {
-    if (account) {
-      refreshSaleDetails();
+    if (!account) {
+      setSale(null);
+      return;
     }
-  }, [account, index]);
+
+    refreshSaleDetails();
+  }, [account]);
 
   if (loading) {
     return (
@@ -194,7 +195,9 @@ export default function SalesDetails({ account, status, setStatus }) {
       >
         <Card>
           <p style={{ color: "var(--text-secondary)" }}>Fruit</p>
-          <h3 style={{ margin: 0, wordBreak: "break-word" }}>{sale.fruitName}</h3>
+          <h3 style={{ margin: 0, wordBreak: "break-word" }}>
+            {sale.fruitName}
+          </h3>
           <p style={{ marginTop: "6px", marginBottom: 0 }}>
             Fruit ID: #{sale.fruitId}
           </p>
@@ -240,7 +243,8 @@ export default function SalesDetails({ account, status, setStatus }) {
             {sale.txHash && (
               <>
                 <p style={{ wordBreak: "break-all" }}>
-                  <strong>Transaction Hash:</strong><br />
+                  <strong>Transaction Hash:</strong>
+                  <br />
                   {sale.txHash}
                 </p>
 

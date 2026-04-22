@@ -5,6 +5,7 @@ export default function DeleteConfirmModal({
   fruitName,
   onClose,
   onConfirm,
+  isDeleting,
 }) {
   return (
     <Modal isOpen={isOpen} title="Confirm deletion" onClose={onClose}>
@@ -21,6 +22,7 @@ export default function DeleteConfirmModal({
             e.stopPropagation();
             onClose();
           }}
+          disabled={isDeleting}
         >
           Cancel
         </button>
@@ -32,8 +34,9 @@ export default function DeleteConfirmModal({
             e.stopPropagation();
             onConfirm();
           }}
+          disabled={isDeleting}
         >
-          Confirm delete
+          {isDeleting ? "Deleting..." : "Confirm delete"}
         </button>
       </div>
     </Modal>

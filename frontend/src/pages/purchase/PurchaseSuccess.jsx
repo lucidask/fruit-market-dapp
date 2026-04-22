@@ -117,7 +117,8 @@ export default function PurchaseSuccess({ account, status, setStatus }) {
             </p>
 
             <p style={{ wordBreak: "break-all" }}>
-              <strong>Transaction Hash:</strong><br />
+              <strong>Transaction Hash:</strong>
+              <br />
               {txHash || "-"}
             </p>
           </div>

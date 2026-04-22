@@ -4,18 +4,13 @@ import AddFruitForm from "../../components/seller/AddFruitForm";
 import FruitList from "../../components/common/FruitList";
 import ToastMessage from "../../components/common/ToastMessage";
 import { ethers } from "ethers";
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
 import abi from "../../config/abi.json";
 import Card from "../../components/common/Card";
 import { useLocation } from "react-router-dom";
+import { getBrowserProvider, checkSupportedNetwork } from "../../utils/web3";
 
-export default function MyStore({
-  account,
-  setAccount,
-  status,
-  setStatus,
-  isV2,
-}) {
+export default function MyStore({ account, status, setStatus, isV2 }) {
   const [fruits, setFruits] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -25,25 +20,22 @@ export default function MyStore({
   const highlightId = queryParams.get("highlight");
 
   const refreshFruits = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
 
     if (!account) {
+      setFruits([]);
       setStatus("Please connect your wallet.");
       return;
     }
 
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setFruits([]);
+      return;
+    }
+
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
-
       setLoading(true);
       setStatus("Loading...");
 
@@ -72,7 +64,7 @@ export default function MyStore({
       }
 
       setFruits(fruitsData);
-      setStatus("Store loaded.");
+      setStatus("");
     } catch (error) {
       console.error("Full store loading error:", error);
       setStatus("Error loading store.");
@@ -82,9 +74,12 @@ export default function MyStore({
   };
 
   useEffect(() => {
-    if (account) {
-      refreshFruits();
+    if (!account) {
+      setFruits([]);
+      return;
     }
+
+    refreshFruits();
   }, [account]);
 
   const activeFruits = fruits.filter((fruit) => fruit.active).length;
@@ -105,7 +100,8 @@ export default function MyStore({
         <div>
           <h1 style={{ margin: "0 0 6px 0" }}>My Store</h1>
           <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-            Manage your products, update stock, and track the fruits listed in your store.
+            Manage your products, update stock, and track the fruits listed in
+            your store.
           </p>
         </div>
 
@@ -114,7 +110,7 @@ export default function MyStore({
           className="button-secondary"
           onClick={() => setShowAddForm((prev) => !prev)}
         >
-          {showAddForm ? "− Opening Form..." : "➕ Add Fruit"}
+          {showAddForm ? "− Close Form" : "+ Add Fruit"}
         </button>
       </div>
 
@@ -149,14 +145,8 @@ export default function MyStore({
       </div>
 
       {showAddForm && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowAddForm(false)}   // 👈 CLICK OUTSIDE
-        >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()} // 👈 BLOQUE le click interne
-          >
+        <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Add a New Fruit</h2>
 
@@ -181,6 +171,14 @@ export default function MyStore({
               }}
             />
 
+            <div style={{ marginTop: "12px", textAlign: "right" }}>
+              <button
+                className="button-secondary"
+                onClick={() => setShowAddForm(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

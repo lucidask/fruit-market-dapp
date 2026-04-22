@@ -1,74 +1,34 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getCurrentChainId } from "../../utils/web3";
 
-export default function WalletConnect({ account, setAccount, setStatus }) {
-
-  const connectWallet = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask non installé.");
-      return;
-    }
-
-    try {
-      const accounts = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-
-      setAccount(accounts[0]);
-      setStatus("Wallet connecté avec succès.");
-
-      // 🔥 Vérifie le réseau
-      const chainId = await window.ethereum.request({
-        method: "eth_chainId",
-      });
-
-      if (chainId !== "0xaa36a7") { // Sepolia = 11155111
-        setStatus("Veuillez vous connecter au réseau Sepolia.");
-      }
-
-    } catch (error) {
-      if (error.code === 4001) {
-        setStatus("Connexion refusée par l'utilisateur.");
-      } else {
-        setStatus("Erreur lors de la connexion du wallet.");
-      }
-    }
-  };
-
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (!window.ethereum) return;
-
-      try {
-        const accounts = await window.ethereum.request({
-          method: "eth_accounts",
-        });
-
-        if (accounts.length > 0) {
-          setAccount(accounts[0]);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    checkConnection();
-  }, [setAccount]);
+export default function WalletConnect({
+  account,
+  setAccount,
+  setStatus,
+  children,
+}) {
+  const [chainId, setChainId] = useState(null);
 
   useEffect(() => {
     if (!window.ethereum) return;
 
-    const handleAccountsChanged = (accounts) => {
-      if (accounts.length > 0) {
-        setAccount(accounts[0]);
-        setStatus("Compte changé.");
-      } else {
-        setAccount(null);
-        setStatus("Aucun compte connecté.");
-      }
+    const init = async () => {
+      const currentChainId = await getCurrentChainId();
+      setChainId(currentChainId);
+
+      setAccount(null);
     };
 
-    const handleChainChanged = () => {
-      window.location.reload(); // 🔥 important pour éviter bugs réseau
+    init();
+
+    const handleAccountsChanged = () => {
+      setAccount(null);
+      setStatus("Account changed. Please reconnect.");
+    };
+
+    const handleChainChanged = async (newChainId) => {
+      setChainId(newChainId);
+      setAccount(null);
     };
 
     window.ethereum.on("accountsChanged", handleAccountsChanged);
@@ -84,17 +44,10 @@ export default function WalletConnect({ account, setAccount, setStatus }) {
     ? `${account.slice(0, 6)}...${account.slice(-4)}`
     : "";
 
-  return (
-    <div>
-      {account ? (
-        <span style={{ fontWeight: "bold" }}>
-          Connected: {shortAccount}
-        </span>
-      ) : (
-        <button onClick={connectWallet}>
-          Connecter MetaMask
-        </button>
-      )}
-    </div>
-  );
+  return children({
+    account,
+    shortAccount,
+    chainId,
+    isSepolia: chainId === "0xaa36a7",
+  });
 }

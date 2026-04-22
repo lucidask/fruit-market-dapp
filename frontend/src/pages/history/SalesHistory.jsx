@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
+import { getBrowserProvider, checkSupportedNetwork } from "../../utils/web3";
 import abi from "../../config/abi.json";
 import ToastMessage from "../../components/common/ToastMessage";
 import { useNavigate } from "react-router-dom";
@@ -22,26 +23,22 @@ export default function SalesHistory({ account, status, setStatus }) {
   };
 
   const refreshSalesHistory = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
 
     if (!account) {
+      setSales([]);
       setStatus("Please connect your wallet.");
       return;
     }
 
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setSales([]);
+      return;
+    }
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
-      
-       setLoading(true);
+      setLoading(true);
       setStatus("Loading...");
 
       const signer = await provider.getSigner();
@@ -70,7 +67,7 @@ export default function SalesHistory({ account, status, setStatus }) {
 
       data.reverse();
       setSales(data);
-      setStatus("Sales history loaded.");
+      setStatus("");
     } catch (error) {
       console.error("Full sales history loading error:", error);
       setStatus("Error loading sales history.");
@@ -80,9 +77,12 @@ export default function SalesHistory({ account, status, setStatus }) {
   };
 
   useEffect(() => {
-    if (account) {
-      refreshSalesHistory();
+    if (!account) {
+      setSales([]);
+      return;
     }
+
+    refreshSalesHistory();
   }, [account]);
 
   const summary = useMemo(() => {
@@ -90,7 +90,7 @@ export default function SalesHistory({ account, status, setStatus }) {
     const totalQuantity = sales.reduce((sum, item) => sum + item.quantity, 0);
     const totalRevenueWei = sales.reduce(
       (sum, item) => sum + BigInt(item.totalPriceWei),
-      0n
+      0n,
     );
 
     return {
@@ -209,31 +209,61 @@ export default function SalesHistory({ account, status, setStatus }) {
                 </div>
 
                 <div>
-                  <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <p
+                    style={{
+                      margin: "0 0 4px 0",
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Quantity
                   </p>
                   <strong>{item.quantity}</strong>
                 </div>
 
                 <div>
-                  <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <p
+                    style={{
+                      margin: "0 0 4px 0",
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Total Received
                   </p>
                   <strong>{item.totalPrice} ETH</strong>
-                  <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <p
+                    style={{
+                      margin: "4px 0 0 0",
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Unit: {item.unitPrice} ETH
                   </p>
                 </div>
 
                 <div>
-                  <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <p
+                    style={{
+                      margin: "0 0 4px 0",
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Buyer
                   </p>
                   <strong>{formatAddress(item.buyer)}</strong>
                 </div>
 
                 <div>
-                  <p style={{ margin: "0 0 4px 0", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <p
+                    style={{
+                      margin: "0 0 4px 0",
+                      fontSize: "12px",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
                     Date
                   </p>
                   <strong style={{ fontSize: "14px" }}>

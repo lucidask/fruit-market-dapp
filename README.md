@@ -2,6 +2,40 @@
 
 Fruit Market est une DApp de marketplace de fruits sur Ethereum Sepolia. Le projet combine un smart contract upgradeable UUPS, un front-end React/Vite avec MetaMask, et une interface séparée pour le catalogue, le tableau de bord acheteur, la boutique vendeur, l’historique d’achats et l’historique de ventes.
 
+## Quick Start
+
+```bash
+git clone <https://github.com/lucidask/fruit-market-dapp.git>
+cd fruit-market-dapp
+
+npm install
+cd frontend && npm install && cd ..
+
+npx hardhat compile
+npx hardhat run scripts/deploy.js --network sepolia
+
+cd frontend
+npm run dev
+
+Puis :
+
+ouvrir http://localhost:5173
+connecter MetaMask
+être sur Sepolia
+utiliser l’app
+
+Creer un fichier `.env` a la racine du projet uniquement nécessaire pour déployer ou upgrader le smart contract.
+> Il n’est pas requis pour lancer et utiliser le frontend.
+
+```env
+SEPOLIA_RPC_URL=YOUR_RPC_URL
+PRIVATE_KEY=YOUR_PRIVATE_KEY
+
+Exemple (Infura or Alchemy RPC):
+
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_api_key
+PRIVATE_KEY=your_wallet_private_key
+
 ## Fonctionnalités implémentées
 
 ### Smart contracts
@@ -25,7 +59,7 @@ Fruit Market est une DApp de marketplace de fruits sur Ethereum Sepolia. Le proj
 - prévention du double vote avec `hasRated(buyer, seller)`
 
 ### Front-end
-- connexion MetaMask
+- connexion MetaMask manuelle (aucune auto-connexion)
 - catalogue Marketplace
 - tableau de bord acheteur avec achats agrégés
 - historique d’achats transaction par transaction
@@ -40,6 +74,33 @@ Fruit Market est une DApp de marketplace de fruits sur Ethereum Sepolia. Le proj
 - page de détail d’un fruit
 - navigation intelligente entre les vues
 - toasts de statut et gestion des erreurs de transaction
+
+### Gestion du wallet et du réseau
+
+- la connexion à MetaMask est contrôlée manuellement (pas d’auto-connexion)
+- l’utilisateur doit cliquer sur "Connect MetaMask" pour autoriser l’accès
+- lors d’un changement de compte ou de réseau :
+  - l’utilisateur est automatiquement déconnecté côté application
+  - les données affichées sont vidées pour éviter toute incohérence
+- le réseau est validé côté frontend (Sepolia requis)
+- si le réseau est incorrect :
+  - les actions sont bloquées
+  - un message d’erreur est affiché
+- le changement de réseau est géré directement par l’application via MetaMask (`wallet_switchEthereumChain`)
+
+### Gestion des actions concurrentes
+
+Pour éviter les incohérences côté utilisateur :
+
+- une seule transaction peut être en cours à la fois par type d’action
+- pendant un achat, tous les autres boutons d’achat sont désactivés
+- pendant une mise à jour, tous les autres boutons update sont désactivés
+- pendant une suppression, toutes les actions update/delete sont bloquées
+- pendant une notation, tous les autres formulaires de notation sont bloqués
+
+Cela garantit :
+- aucune double transaction involontaire
+- une meilleure lisibilité des actions en cours
 
 ## Stack technique
 - Solidity `^0.8.24`
@@ -214,6 +275,7 @@ http://localhost:5173
 - l’adresse utilisée côté front doit toujours être l’adresse du proxy, pas l’adresse de l’implémentation
 - après chaque déploiement ou upgrade, vérifier que `contract.js` et `abi.json` du front ont bien été mis à jour
 - l’interface détecte la disponibilité des fonctions V2 côté front pour adapter l’affichage des notes
+- lors d’un changement de compte, les données affichées sont réinitialisées pour éviter d’afficher des informations liées à un ancien utilisateur
 
 ## Commandes utiles
 ```bash

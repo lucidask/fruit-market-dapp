@@ -3,8 +3,9 @@ import { ethers } from "ethers";
 import { useNavigate } from "react-router-dom";
 
 import ToastMessage from "../../components/common/ToastMessage";
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
 import abi from "../../config/abi.json";
+import { getBrowserProvider, checkSupportedNetwork } from "../../utils/web3";
 
 export default function PurchaseHistory({ account, status, setStatus }) {
   const [history, setHistory] = useState([]);
@@ -22,26 +23,22 @@ export default function PurchaseHistory({ account, status, setStatus }) {
   };
 
   const refreshPurchaseHistory = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
 
     if (!account) {
+      setHistory([]);
       setStatus("Please connect your wallet.");
       return;
     }
 
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setHistory([]);
+      return;
+    }
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
-
-      setLoading(true); // 🔥 déplacé ici
+      setLoading(true);
       setStatus("Loading...");
 
       const signer = await provider.getSigner();
@@ -53,24 +50,24 @@ export default function PurchaseHistory({ account, status, setStatus }) {
       for (let i = 0; i < count; i++) {
         const item = await contract.getPurchaseHistoryItem(i);
 
-       data.push({
-        fruitId: Number(item[0]),
-        fruitName: item[1],
-        buyer: item[2],
-        seller: item[3],
-        quantity: Number(item[4]),
-        unitPriceWei: item[5],
-        totalPriceWei: item[6],
-        unitPrice: ethers.formatEther(item[5]),
-        totalPrice: ethers.formatEther(item[6]),
-        timestamp: Number(item[7]),
-        historyIndex: i,
-      });
+        data.push({
+          fruitId: Number(item[0]),
+          fruitName: item[1],
+          buyer: item[2],
+          seller: item[3],
+          quantity: Number(item[4]),
+          unitPriceWei: item[5],
+          totalPriceWei: item[6],
+          unitPrice: ethers.formatEther(item[5]),
+          totalPrice: ethers.formatEther(item[6]),
+          timestamp: Number(item[7]),
+          historyIndex: i,
+        });
       }
 
       data.reverse();
       setHistory(data);
-      setStatus("Purchase history loaded.");
+      setStatus("");
     } catch (error) {
       console.error("Full purchase history loading error:", error);
       setStatus("Error loading purchase history.");
@@ -80,9 +77,12 @@ export default function PurchaseHistory({ account, status, setStatus }) {
   };
 
   useEffect(() => {
-    if (account) {
-      refreshPurchaseHistory();
+    if (!account) {
+      setHistory([]);
+      return;
     }
+
+    refreshPurchaseHistory();
   }, [account]);
 
   const summary = useMemo(() => {
@@ -90,7 +90,7 @@ export default function PurchaseHistory({ account, status, setStatus }) {
     const totalQuantity = history.reduce((sum, item) => sum + item.quantity, 0);
     const totalSpentWei = history.reduce(
       (sum, item) => sum + BigInt(item.totalPriceWei),
-      0n
+      0n,
     );
 
     return {
@@ -190,9 +190,11 @@ export default function PurchaseHistory({ account, status, setStatus }) {
         >
           {history.map((item, index) => (
             <div key={index}>
-             <div
+              <div
                 className="fruit-card history-row"
-                onClick={() => navigate(`/purchase-details/${item.historyIndex}`)}
+                onClick={() =>
+                  navigate(`/purchase-details/${item.historyIndex}`)
+                }
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1.3fr",

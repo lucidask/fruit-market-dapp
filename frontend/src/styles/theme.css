@@ -182,7 +182,7 @@ button:disabled {
 }
 
 .history-row:hover {
-  background: rgba(0,0,0,0.02);
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .fruit-suggestions {

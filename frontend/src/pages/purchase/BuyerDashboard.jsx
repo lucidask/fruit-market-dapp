@@ -4,40 +4,32 @@ import { ethers } from "ethers";
 import ToastMessage from "../../components/common/ToastMessage";
 import FruitList from "../../components/common/FruitList";
 
-import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
+import { CONTRACT_ADDRESS } from "../../config/contract";
 import abi from "../../config/abi.json";
+import { getBrowserProvider, checkSupportedNetwork } from "../../utils/web3";
 
-export default function BuyerDashboard({
-  account,
-  setAccount,
-  status,
-  setStatus,
-  isV2,
-}) {
+export default function BuyerDashboard({ account, status, setStatus, isV2 }) {
   const [fruits, setFruits] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [purchases, setPurchases] = useState([]);
 
   const refreshPurchases = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
 
     if (!account) {
+      setFruits([]);
       setStatus("Please connect your wallet.");
       return;
     }
 
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setFruits([]);
+      return;
+    }
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
-
-      setLoading(true); // 🔥 déplacé ici
+      setLoading(true);
       setStatus("Loading...");
 
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
@@ -75,7 +67,7 @@ export default function BuyerDashboard({
               stock: Number(fruit[3]),
               seller: fruit[4],
               active: fruit[5],
-              myPurchase: Number(quantity), // 🔥 correction ici
+              myPurchase: Number(quantity),
               sellerRating,
               alreadyRated,
             });
@@ -86,7 +78,7 @@ export default function BuyerDashboard({
       }
 
       setFruits(purchased);
-      setStatus("Purchases loaded.");
+      setStatus("");
     } catch (error) {
       console.error("Full buyer dashboard loading error:", error);
       setStatus("Error loading purchases.");
@@ -96,14 +88,17 @@ export default function BuyerDashboard({
   };
 
   useEffect(() => {
-    if (account) {
-      refreshPurchases(); // 🔥 évite appel inutile
+    if (!account) {
+      setPurchases([]);
+      return;
     }
+
+    refreshPurchases();
   }, [account]);
 
   return (
     <div>
-       <div
+      <div
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -115,22 +110,23 @@ export default function BuyerDashboard({
       >
         <div>
           <h1 style={{ margin: "0 0 6px 0" }}>Buyer Dashboard</h1>
-           <ToastMessage status={status} onClear={() => setStatus(null)} />
+          <ToastMessage status={status} onClear={() => setStatus(null)} />
 
           <p style={{ margin: 0, color: "var(--text-secondary)" }}>
-            View all fruits you have purchased and rate sellers after completed orders.
+            View all fruits you have purchased and rate sellers after completed
+            orders.
           </p>
         </div>
 
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button
-          type="button"
-          className="button-secondary"
-          onClick={refreshPurchases}
-          disabled={loading}
-        >
-          {loading ? "Loading..." : "↻ Refresh"}
-        </button>
+            type="button"
+            className="button-secondary"
+            onClick={refreshPurchases}
+            disabled={loading}
+          >
+            {loading ? "Loading..." : "↻ Refresh"}
+          </button>
         </div>
       </div>
 

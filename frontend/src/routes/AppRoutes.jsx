@@ -14,7 +14,6 @@ import FruitDetails from "../pages/FruitDetails";
 import PurchaseDetails from "../pages/history/PurchaseDetails";
 import SalesDetails from "../pages/history/SalesDetails";
 import PurchaseSuccess from "../pages/purchase/PurchaseSuccess";
-
 import { CONTRACT_ADDRESS } from "../config/contract";
 import abi from "../config/abi.json";
 
@@ -35,7 +34,7 @@ export default function AppRoutes() {
         const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, provider);
 
         const hasGetSellerRating = abi.some(
-          (item) => item.type === "function" && item.name === "getSellerRating"
+          (item) => item.type === "function" && item.name === "getSellerRating",
         );
 
         if (!hasGetSellerRating) {
@@ -43,10 +42,12 @@ export default function AppRoutes() {
           return;
         }
 
-        await contract.getSellerRating("0x0000000000000000000000000000000000000000");
+        await contract.getSellerRating(
+          "0x0000000000000000000000000000000000000000",
+        );
         setIsV2(true);
       } catch (err) {
-        console.error("Erreur détection V2 :", err);
+        console.error("Version detection error (V2):", err);
         setIsV2(false);
       }
     };
@@ -56,11 +57,7 @@ export default function AppRoutes() {
 
   return (
     <BrowserRouter>
-      <Navbar
-        account={account}
-        setAccount={setAccount}
-        setStatus={setStatus}
-      />
+      <Navbar account={account} setAccount={setAccount} setStatus={setStatus} />
 
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar isV2={isV2} />
@@ -81,116 +78,116 @@ export default function AppRoutes() {
                 maxWidth: "1400px",
               }}
             >
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <Marketplace
-                    account={account}
-                    setAccount={setAccount}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <Marketplace
+                      account={account}
+                      setAccount={setAccount}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
 
-              <Route
-                path="/buyer-dashboard"
-                element={
-                  <BuyerDashboard
-                    account={account}
-                    setAccount={setAccount}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
+                <Route
+                  path="/buyer-dashboard"
+                  element={
+                    <BuyerDashboard
+                      account={account}
+                      setAccount={setAccount}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
 
-              <Route
-                path="/seller"
-                element={
-                  <MyStore
-                    account={account}
-                    setAccount={setAccount}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
+                <Route
+                  path="/seller"
+                  element={
+                    <MyStore
+                      account={account}
+                      setAccount={setAccount}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
 
-              <Route
-                path="/purchase-history"
-                element={
-                  <PurchaseHistory
-                    account={account}
-                    status={status}
-                    setStatus={setStatus}
-                  />
-                }
-              />
+                <Route
+                  path="/purchase-history"
+                  element={
+                    <PurchaseHistory
+                      account={account}
+                      status={status}
+                      setStatus={setStatus}
+                    />
+                  }
+                />
 
-              <Route
-                path="/sales-history"
-                element={
-                  <SalesHistory
-                    account={account}
-                    status={status}
-                    setStatus={setStatus}
-                  />
-                }
-              />
+                <Route
+                  path="/sales-history"
+                  element={
+                    <SalesHistory
+                      account={account}
+                      status={status}
+                      setStatus={setStatus}
+                    />
+                  }
+                />
 
-              <Route
-                path="/fruit/:id"
-                element={
-                  <FruitDetails
-                    account={account}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
+                <Route
+                  path="/fruit/:id"
+                  element={
+                    <FruitDetails
+                      account={account}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
 
-              <Route
-                path="/purchase-details/:index"
-                element={
-                  <PurchaseDetails
-                    account={account}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
+                <Route
+                  path="/purchase-details/:index"
+                  element={
+                    <PurchaseDetails
+                      account={account}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
 
-              <Route
-                path="/sales-details/:index"
-                element={
-                  <SalesDetails
-                    account={account}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
+                <Route
+                  path="/sales-details/:index"
+                  element={
+                    <SalesDetails
+                      account={account}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
 
-              <Route
-                path="/purchase-success"
-                element={
-                  <PurchaseSuccess
-                    account={account}
-                    status={status}
-                    setStatus={setStatus}
-                    isV2={isV2}
-                  />
-                }
-              />
-            </Routes>
+                <Route
+                  path="/purchase-success"
+                  element={
+                    <PurchaseSuccess
+                      account={account}
+                      status={status}
+                      setStatus={setStatus}
+                      isV2={isV2}
+                    />
+                  }
+                />
+              </Routes>
             </div>
           </div>
         </main>

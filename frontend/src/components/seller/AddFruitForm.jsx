@@ -2,10 +2,12 @@ import { useMemo, useState } from "react";
 import { ethers } from "ethers";
 import abi from "../../config/abi.json";
 import { CONTRACT_ADDRESS } from "../../config/contract";
+import { getFruitEmoji, getFruitEmojiSuggestions } from "../../utils/format";
 import {
-  getFruitEmoji,
-  getFruitEmojiSuggestions,
-} from "../../utils/format";
+  getProviderAndSigner,
+  handleWeb3Error,
+  hasEnoughGas,
+} from "../../utils/web3";
 
 export default function AddFruitForm({ account, setStatus, refreshFruits }) {
   const [name, setName] = useState("");
@@ -17,11 +19,6 @@ export default function AddFruitForm({ account, setStatus, refreshFruits }) {
   const suggestions = useMemo(() => getFruitEmojiSuggestions(name, 4), [name]);
 
   const handleSubmit = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
-
     if (!account) {
       setStatus("Please connect your wallet.");
       return;
@@ -41,14 +38,27 @@ export default function AddFruitForm({ account, setStatus, refreshFruits }) {
       setLoading(true);
       setStatus("Opening MetaMask...");
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
+      const { signer } = await getProviderAndSigner(setStatus);
+      if (!signer) return;
+
       const contract = new ethers.Contract(CONTRACT_ADDRESS, abi, signer);
+
+      const txRequest = await contract.addFruit.populateTransaction(
+        name,
+        ethers.parseEther(price),
+        Number(stock),
+      );
+
+      const ok = await hasEnoughGas(txRequest, signer);
+      if (!ok) {
+        setStatus("Insufficient funds for gas.");
+        return;
+      }
 
       const tx = await contract.addFruit(
         name,
         ethers.parseEther(price),
-        Number(stock)
+        Number(stock),
       );
 
       setStatus("Transaction sent. Waiting for confirmation...");
@@ -64,13 +74,7 @@ export default function AddFruitForm({ account, setStatus, refreshFruits }) {
         await refreshFruits();
       }
     } catch (error) {
-      console.error(error);
-
-      if (error.code === 4001) {
-        setStatus("Transaction rejected.");
-      } else {
-        setStatus("Error while adding fruit.");
-      }
+      handleWeb3Error(error, setStatus, "add fruit");
     } finally {
       setLoading(false);
     }
@@ -126,7 +130,8 @@ export default function AddFruitForm({ account, setStatus, refreshFruits }) {
             style={{
               marginTop: "10px",
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(72px, max-content))",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(72px, max-content))",
               gap: "8px",
               justifyContent: "start",
               alignItems: "center",

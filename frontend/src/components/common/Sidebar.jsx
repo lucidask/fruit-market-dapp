@@ -117,9 +117,7 @@ export default function Sidebar({ isV2 }) {
             onClick={() => setHistoryOpen((prev) => !prev)}
           >
             <span>History</span>
-            <span style={{ fontSize: "13px" }}>
-              {historyOpen ? "▾" : "▸"}
-            </span>
+            <span style={{ fontSize: "13px" }}>{historyOpen ? "▾" : "▸"}</span>
           </button>
 
           {historyOpen && (
@@ -131,10 +129,7 @@ export default function Sidebar({ isV2 }) {
                 Purchase History
               </Link>
 
-              <Link
-                to="/sales-history"
-                style={subLinkStyle("/sales-history")}
-              >
+              <Link to="/sales-history" style={subLinkStyle("/sales-history")}>
                 Sales History
               </Link>
             </div>
@@ -152,7 +147,9 @@ export default function Sidebar({ isV2 }) {
         }}
       >
         <strong style={{ color: "#f9fafb" }}>Contract version:</strong>{" "}
-        <span style={{ color: isV2 ? "#22c55e" : "#9ca3af", fontWeight: "600" }}>
+        <span
+          style={{ color: isV2 ? "#22c55e" : "#9ca3af", fontWeight: "600" }}
+        >
           {isV2 ? "V2" : "V1"}
         </span>
       </div>

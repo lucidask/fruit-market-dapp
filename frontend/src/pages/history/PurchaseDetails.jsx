@@ -7,6 +7,7 @@ import Card from "../../components/common/Card";
 import abi from "../../config/abi.json";
 import { CONTRACT_ADDRESS, SUPPORTED_CHAIN_ID } from "../../config/contract";
 import { shortenAddress, renderStars } from "../../utils/format";
+import { getBrowserProvider, checkSupportedNetwork } from "../../utils/web3";
 
 export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
   const { index } = useParams();
@@ -33,7 +34,7 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
     }
 
     const logs = await contract.queryFilter(
-      contract.filters.FruitPurchased(null, buyerAddress)
+      contract.filters.FruitPurchased(null, buyerAddress),
     );
 
     const sortedLogs = [...logs].sort((a, b) => {
@@ -43,7 +44,11 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
 
     let logPointer = 0;
 
-    for (let historyIndex = 0; historyIndex < historyItems.length; historyIndex++) {
+    for (
+      let historyIndex = 0;
+      historyIndex < historyItems.length;
+      historyIndex++
+    ) {
       const record = historyItems[historyIndex];
 
       while (logPointer < sortedLogs.length) {
@@ -72,25 +77,24 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
   };
 
   const refreshPurchaseDetails = async () => {
-    if (!window.ethereum) {
-      setStatus("MetaMask is not installed.");
-      return;
-    }
+    const provider = await getBrowserProvider(setStatus);
+    if (!provider) return;
 
     if (!account) {
+      setPurchase(null);
+      setCurrentFruit(null);
       setStatus("Please connect your wallet.");
       return;
     }
 
+    const isSupported = await checkSupportedNetwork(provider, setStatus);
+    if (!isSupported) {
+      setPurchase(null);
+      setCurrentFruit(null);
+      return;
+    }
+
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      const network = await provider.getNetwork();
-      if (Number(network.chainId) !== SUPPORTED_CHAIN_ID) {
-        setStatus("Wrong network. Please switch to Sepolia.");
-        return;
-      }
-
       setLoading(true);
       setStatus("Loading...");
 
@@ -145,7 +149,7 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
       });
 
       setCurrentFruit(fruitData);
-      setStatus("Purchase details loaded.");
+      setStatus("");
     } catch (error) {
       console.error(error);
       setStatus("Error loading purchase details.");
@@ -157,11 +161,14 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
   };
 
   useEffect(() => {
-    if (account) {
-      refreshPurchaseDetails();
+    if (!account) {
+      setPurchase(null);
+      setCurrentFruit(null);
+      return;
     }
-  }, [account, index]);
 
+    refreshPurchaseDetails();
+  }, [account]);
   if (loading) {
     return (
       <div>
@@ -224,7 +231,9 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
           <p style={{ margin: "0 0 6px 0", color: "var(--text-secondary)" }}>
             Fruit
           </p>
-          <h3 style={{ margin: 0, wordBreak: "break-word" }}>{purchase.fruitName}</h3>
+          <h3 style={{ margin: 0, wordBreak: "break-word" }}>
+            {purchase.fruitName}
+          </h3>
           <p style={{ marginTop: "6px", marginBottom: 0 }}>
             Fruit ID: #{purchase.fruitId}
           </p>
@@ -274,7 +283,8 @@ export default function PurchaseDetails({ account, status, setStatus, isV2 }) {
             {purchase.txHash && (
               <>
                 <p style={{ wordBreak: "break-all" }}>
-                  <strong>Transaction Hash:</strong><br />
+                  <strong>Transaction Hash:</strong>
+                  <br />
                   {purchase.txHash}
                 </p>
 
