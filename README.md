@@ -12,7 +12,6 @@ npm install
 cd frontend && npm install && cd ..
 
 npx hardhat compile
-npx hardhat run scripts/deploy.js --network sepolia
 
 cd frontend
 npm run dev
@@ -23,6 +22,38 @@ ouvrir http://localhost:5173
 connecter MetaMask
 être sur Sepolia
 utiliser l’app
+
+S'il y a erreur, a partir de la racine fait : 
+```bash
+chmod +x node_modules/.bin/hardhat
+npx hardhat compile
+
+ou 
+
+rm -rf node_modules package-lock.json
+npm install
+npx hardhat compile
+
+Puis
+
+chmod +x node_modules/.bin/vite
+npm run dev
+
+ou
+
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+
+
+## 🔗 Déploiement
+
+- Réseau : Sepolia
+- Adresse du proxy : 
+
+0xc7fa4184033d809BBd7eb6B013AD2eb45788647E
+
+- Lien Etherscan : https://sepolia.etherscan.io/address/0xc7fa4184033d809BBd7eb6B013AD2eb45788647E
 
 Creer un fichier `.env` a la racine du projet uniquement nécessaire pour déployer ou upgrader le smart contract.
 > Il n’est pas requis pour lancer et utiliser le frontend.
@@ -266,8 +297,11 @@ http://localhost:5173
 ## 🔗 Déploiement
 
 - Réseau : Sepolia
-- Adresse du proxy : [À remplir]
-- Lien Etherscan : https://sepolia.etherscan.io/address/[ADRESSE]
+- Adresse du proxy : 
+
+0xc7fa4184033d809BBd7eb6B013AD2eb45788647E
+
+- Lien Etherscan : https://sepolia.etherscan.io/address/0xc7fa4184033d809BBd7eb6B013AD2eb45788647E
 
 ⚠️ Toujours utiliser l’adresse du proxy pour interagir avec le contrat.
 

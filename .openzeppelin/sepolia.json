@@ -70,6 +70,26 @@
       "address": "0xF6E2175b529Cd188b1D22bD95B70Bd933790114A",
       "txHash": "0x56bfe9d049696c53673b23ca42b5805f61552c0932f4b1dd483d04391c3314aa",
       "kind": "uups"
+    },
+    {
+      "address": "0x2caA06CDb5B2932aeb7cE86547AAd27b23De4441",
+      "txHash": "0xb5beba75e159bebb476764990671ec94bcd89eefaab9d3e1891bd4ba9db08e65",
+      "kind": "uups"
+    },
+    {
+      "address": "0x570D84742E8e6892C4a7829f33de048348EE36Ac",
+      "txHash": "0xdbf102c8f8b5aaf39e8b108b5530ea3eca703c7a5e771aa3c97c3e437b8b6587",
+      "kind": "uups"
+    },
+    {
+      "address": "0x75606bD4387EC5d5771f5292085271340c3C9fD6",
+      "txHash": "0x47011ba8f2de9574111fbc9e952b857576e0dc14b9086c247e7ad318122576db",
+      "kind": "uups"
+    },
+    {
+      "address": "0xc7fa4184033d809BBd7eb6B013AD2eb45788647E",
+      "txHash": "0x2c1460ea1e674e2b56727fb0a1d699da874131d8a47717b6a265a3b76117337c",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -1698,7 +1718,7 @@
             "slot": "257",
             "type": "t_mapping(t_address,t_uint256)",
             "contract": "FruitMarketV2",
-            "src": "contracts/FruitMarketV2.sol:7"
+            "src": "contracts/FruitMarketV2.sol:9"
           },
           {
             "label": "sellerRatingCount",
@@ -1706,7 +1726,7 @@
             "slot": "258",
             "type": "t_mapping(t_address,t_uint256)",
             "contract": "FruitMarketV2",
-            "src": "contracts/FruitMarketV2.sol:8"
+            "src": "contracts/FruitMarketV2.sol:11"
           },
           {
             "label": "hasRatedSeller",
@@ -1714,7 +1734,7 @@
             "slot": "259",
             "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
             "contract": "FruitMarketV2",
-            "src": "contracts/FruitMarketV2.sol:9"
+            "src": "contracts/FruitMarketV2.sol:13"
           }
         ],
         "types": {

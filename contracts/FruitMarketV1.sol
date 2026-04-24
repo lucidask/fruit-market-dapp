@@ -90,6 +90,8 @@ contract FruitMarketV1 is
 
     // ===== INITIALIZATION =====
 
+    /// @notice Initialise le proxy upgradeable et remplace le constructeur.
+    /// @dev Doit etre appele une seule fois via le proxy afin de configurer owner, UUPS et la protection anti-reentrance.
     // remplace le constructeur (obligatoire pour upgradeable)
     function initialize() public initializer {
         __Ownable_init();         // définit le propriétaire
@@ -99,6 +101,10 @@ contract FruitMarketV1 is
 
     // ===== FONCTIONS PRINCIPALES =====
 
+    /// @notice Ajoute un fruit vendable au marche.
+    /// @param name Nom affiche du fruit.
+    /// @param price Prix unitaire en wei.
+    /// @param stock Quantite initiale disponible.
     // ajouter un fruit au marché
     function addFruit(
         string memory name,
@@ -125,6 +131,10 @@ contract FruitMarketV1 is
         emit FruitAdded(fruitCount, name, price, stock, msg.sender);
     }
 
+    /// @notice Achete une quantite donnee d'un fruit actif.
+    /// @dev Suit le schema checks-effects-interactions : validation, mise a jour du stockage, puis transfert ETH.
+    /// @param fruitId Identifiant du fruit achete.
+    /// @param quantity Nombre d'unites achetees.
     // acheter un fruit
     function buyFruit(uint256 fruitId, uint256 quantity)
         external
@@ -140,6 +150,7 @@ contract FruitMarketV1 is
         require(fruit.stock >= quantity, "Not enough stock");
 
         uint256 totalPrice = fruit.price * quantity;
+        // Le paiement doit correspondre exactement au prix courant pour eviter tout solde bloque dans le contrat.
         require(msg.value == totalPrice, "Incorrect payment");
 
         // mise à jour du stock
@@ -169,6 +180,7 @@ contract FruitMarketV1 is
         // historique vendeur
         salesHistory[fruit.seller].push(record);
 
+        // Appel externe protege par nonReentrant ; le stock et les historiques sont deja mis a jour avant le transfert.
         // transfert de l'argent
         (bool success, ) = payable(fruit.seller).call{value: totalPrice}("");
         require(success, "Payment failed");
@@ -176,6 +188,10 @@ contract FruitMarketV1 is
         emit FruitPurchased(fruitId, msg.sender, quantity, totalPrice);
     }
 
+    /// @notice Met a jour le prix et le stock d'un fruit existant.
+    /// @param fruitId Identifiant du fruit a modifier.
+    /// @param price Nouveau prix unitaire en wei.
+    /// @param stock Nouveau stock disponible.
     // modifier un fruit (prix + stock)
     function updateFruit(
         uint256 fruitId,
@@ -198,6 +214,8 @@ contract FruitMarketV1 is
         emit FruitUpdated(fruitId, price, stock);
     }
 
+    /// @notice Desactive un fruit sans supprimer son historique on-chain.
+    /// @param fruitId Identifiant du fruit a retirer du marche.
     // supprimer un fruit (on le désactive seulement)
     function removeFruit(uint256 fruitId) external {
         require(fruitId > 0 && fruitId <= fruitCount, "Invalid fruit id");
@@ -214,6 +232,14 @@ contract FruitMarketV1 is
 
     // ===== FONCTIONS DE LECTURE =====
 
+    /// @notice Retourne les informations courantes d'un fruit.
+    /// @param fruitId Identifiant du fruit consulte.
+    /// @return id Identifiant unique du fruit.
+    /// @return name Nom actuel du fruit.
+    /// @return price Prix unitaire actuel en wei.
+    /// @return stock Stock restant.
+    /// @return seller Adresse du vendeur.
+    /// @return active Statut de disponibilite du fruit.
     // récupérer les infos d’un fruit
     function getFruit(uint256 fruitId)
         external
@@ -241,11 +267,17 @@ contract FruitMarketV1 is
         );
     }
 
+    /// @notice Retourne le nombre de fruits crees, actifs ou inactifs.
+    /// @return Nombre total d'identifiants de fruits emis.
     // retourne le nombre total de fruits
     function getFruitCount() external view returns (uint256) {
         return fruitCount;
     }
 
+    /// @notice Retourne la quantite cumulee achetee par un acheteur pour un fruit.
+    /// @param fruitId Identifiant du fruit.
+    /// @param buyer Adresse de l'acheteur.
+    /// @return Quantite totale achetee par cet acheteur.
     // retourne combien un utilisateur a acheté d’un fruit
     function getPurchaseQuantity(uint256 fruitId, address buyer)
         external
@@ -257,6 +289,11 @@ contract FruitMarketV1 is
         return purchases[fruitId][buyer];
     }
 
+    /// @notice Indique si un acheteur a deja achete aupres d'un vendeur.
+    /// @dev Sert notamment de preuve minimale d'achat pour autoriser des actions en V2, comme la notation.
+    /// @param buyer Adresse de l'acheteur.
+    /// @param seller Adresse du vendeur.
+    /// @return true si au moins un achat buyer -> seller a ete enregistre.
     // retourne si un buyer a deja achete chez un seller
     function hasBuyerPurchasedFromSeller(address buyer, address seller)
         external
@@ -266,16 +303,30 @@ contract FruitMarketV1 is
         return hasBoughtFromSeller[buyer][seller];
     }
 
+    /// @notice Retourne le nombre d'achats enregistres pour msg.sender.
+    /// @return Taille de l'historique d'achat de l'appelant.
     // retourne le nombre total d'achats de l'utilisateur connecté
     function getPurchaseHistoryCount() external view returns (uint256) {
         return purchaseHistory[msg.sender].length;
     }
 
+    /// @notice Retourne le nombre de ventes enregistrees pour msg.sender.
+    /// @return Taille de l'historique de vente de l'appelant.
     // retourne le nombre total de ventes du vendeur connecté
     function getSalesHistoryCount() external view returns (uint256) {
         return salesHistory[msg.sender].length;
     }
 
+    /// @notice Retourne une entree d'historique d'achat de msg.sender.
+    /// @param index Position de l'entree dans l'historique de l'appelant.
+    /// @return fruitId Identifiant du fruit achete.
+    /// @return fruitName Nom du fruit au moment de l'achat.
+    /// @return buyer Adresse de l'acheteur.
+    /// @return seller Adresse du vendeur.
+    /// @return quantity Quantite achetee.
+    /// @return unitPrice Prix unitaire enregistre au moment de l'achat.
+    /// @return totalPrice Montant total paye.
+    /// @return timestamp Horodatage du bloc de l'achat.
     // retourne un achat précis de l'utilisateur connecté
     function getPurchaseHistoryItem(uint256 index)
         external
@@ -307,6 +358,16 @@ contract FruitMarketV1 is
         );
     }
 
+    /// @notice Retourne une entree d'historique de vente de msg.sender.
+    /// @param index Position de l'entree dans l'historique de l'appelant.
+    /// @return fruitId Identifiant du fruit vendu.
+    /// @return fruitName Nom du fruit au moment de la vente.
+    /// @return buyer Adresse de l'acheteur.
+    /// @return seller Adresse du vendeur.
+    /// @return quantity Quantite vendue.
+    /// @return unitPrice Prix unitaire enregistre au moment de la vente.
+    /// @return totalPrice Montant total recu.
+    /// @return timestamp Horodatage du bloc de la vente.
     // retourne une vente précise du vendeur connecté
     function getSalesHistoryItem(uint256 index)
         external
@@ -340,6 +401,9 @@ contract FruitMarketV1 is
 
     // ===== UPGRADE =====
 
+    /// @notice Point de controle appele par UUPS avant toute mise a jour d'implementation.
+    /// @dev Le modificateur onlyOwner limite l'upgrade au proprietaire du proxy.
+    /// @param newImplementation Adresse de la nouvelle implementation proposee.
     // autorise l’upgrade seulement au owner
     function _authorizeUpgrade(address newImplementation)
         internal
